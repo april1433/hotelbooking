@@ -65,37 +65,64 @@ export default function LoginPage() {
         });
 
         if (error) throw error;
-        toast.success("Successfully logged in! Redirecting...");
+        toast.success("Logging in...");
+
+        // Determine role synchronously from email
+        const emailLower = (authData?.user?.email || resolvedEmail).toLowerCase();
+        let role = "guest";
+        if (
+          emailLower === "super@grandazure.com" ||
+          emailLower === "admin@grandazure.com" ||
+          emailLower === "admin2@grandazure.com"
+        ) {
+          role = "super_admin";
+        } else if (emailLower === "manager@grandazure.com") {
+          role = "manager";
+        } else if (emailLower === "reception@grandazure.com") {
+          role = "receptionist";
+        } else if (emailLower === "housekeeping@grandazure.com") {
+          role = "housekeeping";
+        } else if (emailLower === "cashier@grandazure.com") {
+          role = "cashier";
+        } else if (emailLower === "maintenance@grandazure.com") {
+          role = "maintenance";
+        }
+
+        // Provision profile in DB (with fast 800ms timeout so login is instant)
+        if (authData?.user) {
+          try {
+            await Promise.race([
+              fetch("/api/auth/provision", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  userId: authData.user.id,
+                  email: authData.user.email,
+                }),
+              }),
+              new Promise((resolve) => setTimeout(resolve, 800)),
+            ]);
+          } catch {
+            // Keep going
+          }
+        }
 
         // Determine destination dashboard based on role
         let target = (redirectTo && redirectTo !== "/") ? redirectTo : "/";
-
-        try {
-          if (authData?.user) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", authData.user.id)
-              .maybeSingle();
-
-            const role = profile?.role || authData.user.user_metadata?.role;
-            if (role === "guest") {
-              target = (redirectTo && redirectTo !== "/") ? redirectTo : "/guest/dashboard";
-            } else if (role === "receptionist") {
-              target = "/staff/reception";
-            } else if (role === "housekeeping") {
-              target = "/staff/housekeeping";
-            } else if (role === "cashier") {
-              target = "/staff/cashier";
-            } else if (role === "maintenance") {
-              target = "/staff/maintenance";
-            } else if (role === "super_admin" || role === "manager") {
-              target = "/admin/dashboard";
-            }
-            // If profile row not found (seed SQL not run), stay on home page
+        if (target === "/") {
+          if (role === "guest") {
+            target = "/guest/dashboard";
+          } else if (role === "receptionist") {
+            target = "/staff/reception";
+          } else if (role === "housekeeping") {
+            target = "/staff/housekeeping";
+          } else if (role === "cashier") {
+            target = "/staff/cashier";
+          } else if (role === "maintenance") {
+            target = "/staff/maintenance";
+          } else if (role === "super_admin" || role === "manager") {
+            target = "/admin/dashboard";
           }
-        } catch {
-          // Keep target fallback
         }
 
         // Use full navigation so cookies are completely refreshed and sent to server

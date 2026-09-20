@@ -82,6 +82,31 @@ export function PublicNavbar() {
 
   const isHome = pathname === "/";
 
+  const emailRoleMap: Record<string, string> = {
+    "super@grandazure.com": "super_admin",
+    "admin@grandazure.com": "super_admin",
+    "admin2@grandazure.com": "super_admin",
+    "manager@grandazure.com": "manager",
+    "reception@grandazure.com": "receptionist",
+    "housekeeping@grandazure.com": "housekeeping",
+    "cashier@grandazure.com": "cashier",
+    "maintenance@grandazure.com": "maintenance",
+    "guest@grandazure.com": "guest",
+  };
+
+  const activeUser: Profile | null = user || (authUser ? {
+    id: authUser.id,
+    hotel_id: "11111111-0000-0000-0000-000000000001",
+    role: (authUser.email ? emailRoleMap[authUser.email.toLowerCase()] : "guest") as any || "guest",
+    first_name: authUser.email ? authUser.email.split("@")[0] : "User",
+    last_name: "",
+    display_name: authUser.email ? authUser.email.split("@")[0] : "User",
+    email: authUser.email,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  } : null);
+
   return (
     <>
       {/* Top bar */}
@@ -158,32 +183,8 @@ export function PublicNavbar() {
               </button>
             )}
 
-            {(user || authUser) ? (
-              user ? (
-                <UserMenu user={user} scrolled={scrolled || !isHome} />
-              ) : (
-                // Logged in but no profile yet (seed not run) — show basic user menu
-                <div className="flex items-center gap-2">
-                  <Link
-                    href="/"
-                    className={cn(
-                      "hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                      scrolled || !isHome
-                        ? "text-navy-700 hover:bg-navy-50 dark:text-cream-300"
-                        : "text-white/80 hover:text-white hover:bg-white/10"
-                    )}
-                  >
-                    <User className="h-4 w-4" />
-                    {authUser?.email?.split("@")[0]}
-                  </Link>
-                  <button
-                    onClick={async () => { const sb = createClient(); await sb.auth.signOut(); window.location.href = "/auth/login"; }}
-                    className="px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
-                </div>
-              )
+            {activeUser ? (
+              <UserMenu user={activeUser} scrolled={scrolled || !isHome} />
             ) : (
               <>
                 <Link
@@ -245,8 +246,32 @@ export function PublicNavbar() {
                   </Link>
                 ))}
                 <div className="border-t border-border mt-2 pt-2">
-                  <Link href="/auth/login" onClick={() => setOpen(false)} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-navy-700 hover:bg-navy-50 dark:text-cream-300">Sign In</Link>
-                  <Link href="/booking" onClick={() => setOpen(false)} className="block mt-1 px-3 py-2.5 rounded-xl text-sm font-semibold text-center bg-gold-500 text-white">Book Now</Link>
+                  {activeUser ? (
+                    <>
+                      <Link
+                        href={getRoleDashboardHref(activeUser.role)}
+                        onClick={() => setOpen(false)}
+                        className="block px-3 py-2.5 rounded-xl text-sm font-medium text-navy-700 dark:text-cream-300 hover:bg-navy-50 dark:hover:bg-navy-800"
+                      >
+                        Dashboard
+                      </Link>
+                      <button
+                        onClick={async () => {
+                          const sb = createClient();
+                          await sb.auth.signOut();
+                          window.location.href = "/auth/login";
+                        }}
+                        className="block w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50"
+                      >
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/auth/login" onClick={() => setOpen(false)} className="block px-3 py-2.5 rounded-xl text-sm font-medium text-navy-700 hover:bg-navy-50 dark:text-cream-300">Sign In</Link>
+                      <Link href="/booking" onClick={() => setOpen(false)} className="block mt-1 px-3 py-2.5 rounded-xl text-sm font-semibold text-center bg-gold-500 text-white">Book Now</Link>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -255,6 +280,25 @@ export function PublicNavbar() {
       </header>
     </>
   );
+}
+
+function getRoleDashboardHref(role?: string): string {
+  switch (role) {
+    case "super_admin":
+    case "manager":
+      return "/admin/dashboard";
+    case "receptionist":
+      return "/staff/reception";
+    case "housekeeping":
+      return "/staff/housekeeping";
+    case "cashier":
+      return "/staff/cashier";
+    case "maintenance":
+      return "/staff/maintenance";
+    case "guest":
+    default:
+      return "/guest/dashboard";
+  }
 }
 
 function UserMenu({ user, scrolled }: { user: Profile; scrolled: boolean }) {
@@ -297,7 +341,7 @@ function UserMenu({ user, scrolled }: { user: Profile; scrolled: boolean }) {
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
             <div className="py-1.5">
-              <Link href={user.role === "guest" ? "/guest/dashboard" : "/admin/dashboard"} onClick={() => setOpen(false)}
+              <Link href={getRoleDashboardHref(user.role)} onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2 text-sm text-foreground hover:bg-accent transition-colors">
                 <LayoutDashboard className="h-4 w-4" /> Dashboard
               </Link>

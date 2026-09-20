@@ -119,14 +119,34 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
-    const profile = profileData as any;
+    let role = (profileData as any)?.role;
 
-    // If profile doesn't exist yet (seed not run), redirect home instead of 403
-    if (!profile) {
-      return NextResponse.redirect(new URL("/", request.url));
+    // Fallback: derive role from email if profile doesn't exist yet
+    if (!role && user.email) {
+      const emailMap: Record<string, string> = {
+        "super@grandazure.com": "super_admin",
+        "admin@grandazure.com": "super_admin",
+        "admin2@grandazure.com": "super_admin",
+        "manager@grandazure.com": "manager",
+        "reception@grandazure.com": "receptionist",
+        "housekeeping@grandazure.com": "housekeeping",
+        "cashier@grandazure.com": "cashier",
+        "maintenance@grandazure.com": "maintenance",
+        "guest@grandazure.com": "guest",
+      };
+      role = emailMap[user.email.toLowerCase()] ||
+        (user.email.endsWith("@grandazure.com") ? "guest" : undefined);
     }
 
-    if (!allowedRoles.includes(profile.role)) {
+    if (!role) {
+      if (pathname.startsWith("/guest")) {
+        role = "guest";
+      } else {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    }
+
+    if (!allowedRoles.includes(role)) {
       return NextResponse.redirect(new URL("/403", request.url));
     }
   }

@@ -1,0 +1,420 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap');
+
+/* Tailwind v4 — replaces @tailwind base/components/utilities */
+@import "tailwindcss";
+@config "../tailwind.config.ts";
+@plugin "tailwindcss-animate";
+
+/* ============================================================
+   THEME — Map CSS vars to Tailwind color utilities (v4 required)
+   This is what makes `border-border`, `bg-background`, etc. work
+   ============================================================ */
+
+@theme inline {
+  /* Semantic colors from CSS variables */
+  --color-background:           hsl(var(--background));
+  --color-foreground:           hsl(var(--foreground));
+  --color-card:                 hsl(var(--card));
+  --color-card-foreground:      hsl(var(--card-foreground));
+  --color-popover:              hsl(var(--popover));
+  --color-popover-foreground:   hsl(var(--popover-foreground));
+  --color-primary:              hsl(var(--primary));
+  --color-primary-foreground:   hsl(var(--primary-foreground));
+  --color-secondary:            hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted:                hsl(var(--muted));
+  --color-muted-foreground:     hsl(var(--muted-foreground));
+  --color-accent:               hsl(var(--accent));
+  --color-accent-foreground:    hsl(var(--accent-foreground));
+  --color-destructive:          hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border:               hsl(var(--border));
+  --color-input:                hsl(var(--input));
+  --color-ring:                 hsl(var(--ring));
+
+  /* Sidebar semantic colors */
+  --color-sidebar:                    hsl(var(--sidebar));
+  --color-sidebar-foreground:         hsl(var(--sidebar-foreground));
+  --color-sidebar-primary:            hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent:             hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground:  hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border:             hsl(var(--sidebar-border));
+  --color-sidebar-ring:               hsl(var(--sidebar-ring));
+
+  /* Border radius */
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  var(--radius);
+  --radius-lg:  calc(var(--radius) + 4px);
+  --radius-xl:  calc(var(--radius) + 8px);
+  --radius-2xl: calc(var(--radius) + 16px);
+}
+
+/* ============================================================
+   CSS VARIABLES — Luxury Hotel Design System
+   ============================================================ */
+
+@layer base {
+  :root {
+    --background:        220 33% 98%;
+    --foreground:        222 47% 11%;
+    --card:              0 0% 100%;
+    --card-foreground:   222 47% 11%;
+    --popover:           0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary:           224 54% 18%;
+    --primary-foreground: 43 56% 68%;
+    --secondary:         43 56% 68%;
+    --secondary-foreground: 224 54% 18%;
+    --muted:             220 14% 96%;
+    --muted-foreground:  220 9% 46%;
+    --accent:            43 56% 68%;
+    --accent-foreground: 224 54% 18%;
+    --destructive:       0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border:            220 13% 91%;
+    --input:             220 13% 91%;
+    --ring:              224 54% 18%;
+    --radius:            0.625rem;
+
+    /* Luxury palette shortcuts */
+    --navy:     #1a2744;
+    --gold:     #c9a96e;
+    --cream:    #faf8f5;
+    --charcoal: #0f1623;
+
+    /* Sidebar */
+    --sidebar:              224 54% 14%;
+    --sidebar-foreground:   43 56% 80%;
+    --sidebar-primary:      43 56% 68%;
+    --sidebar-primary-foreground: 224 54% 10%;
+    --sidebar-accent:       224 40% 20%;
+    --sidebar-accent-foreground: 43 56% 80%;
+    --sidebar-border:       224 40% 22%;
+    --sidebar-ring:         43 56% 68%;
+  }
+
+  .dark {
+    --background:        222 47% 7%;
+    --foreground:        210 40% 95%;
+    --card:              222 47% 9%;
+    --card-foreground:   210 40% 95%;
+    --popover:           222 47% 9%;
+    --popover-foreground: 210 40% 95%;
+    --primary:           43 56% 68%;
+    --primary-foreground: 224 54% 10%;
+    --secondary:         224 40% 18%;
+    --secondary-foreground: 210 40% 95%;
+    --muted:             224 40% 14%;
+    --muted-foreground:  220 9% 55%;
+    --accent:            224 40% 18%;
+    --accent-foreground: 210 40% 95%;
+    --destructive:       0 62% 48%;
+    --destructive-foreground: 0 0% 98%;
+    --border:            224 40% 18%;
+    --input:             224 40% 18%;
+    --ring:              43 56% 68%;
+
+    --sidebar:              222 47% 6%;
+    --sidebar-foreground:   210 40% 85%;
+    --sidebar-primary:      43 56% 68%;
+    --sidebar-primary-foreground: 224 54% 10%;
+    --sidebar-accent:       224 40% 14%;
+    --sidebar-accent-foreground: 43 56% 80%;
+    --sidebar-border:       224 40% 14%;
+    --sidebar-ring:         43 56% 68%;
+  }
+}
+
+/* ============================================================
+   BASE RESETS
+   ============================================================ */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary));
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
+}
+
+/* ============================================================
+   COMPONENT LAYER — Reusable design patterns
+   ============================================================ */
+
+@layer components {
+
+  /* Glass Card */
+  .glass-card {
+    @apply backdrop-blur-md border border-white/10 rounded-2xl;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  /* Luxury Card */
+  .luxury-card {
+    @apply bg-card border border-border rounded-2xl shadow-card 
+           hover:shadow-luxury transition-all duration-300;
+  }
+
+  /* Gold accent border */
+  .gold-border {
+    border-image: linear-gradient(135deg, #c9a96e, #e2ae38, #c9a96e) 1;
+  }
+
+  /* Gold gradient text */
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #c9a96e 0%, #e2ae38 50%, #c9a96e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Navy gradient text */
+  .text-navy-gradient {
+    background: linear-gradient(135deg, #1a2744 0%, #2c4e9a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Sidebar */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+           text-sidebar-foreground/70 hover:text-sidebar-foreground
+           hover:bg-sidebar-accent transition-all duration-200 cursor-pointer;
+  }
+
+  .sidebar-item.active {
+    @apply bg-sidebar-primary text-sidebar-primary-foreground shadow-gold;
+  }
+
+  /* Status badges */
+  .badge-available    { @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400; }
+  .badge-occupied     { @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400; }
+  .badge-reserved     { @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400; }
+  .badge-maintenance  { @apply bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400; }
+  .badge-cleaning     { @apply bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400; }
+  .badge-pending      { @apply bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400; }
+  .badge-confirmed    { @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400; }
+  .badge-cancelled    { @apply bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400; }
+  .badge-checked-in   { @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400; }
+  .badge-checked-out  { @apply bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400; }
+
+  /* Page header */
+  .page-header {
+    @apply flex items-center justify-between mb-8;
+  }
+
+  .page-title {
+    @apply text-3xl font-display font-semibold text-foreground;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-muted-foreground mt-1;
+  }
+
+  /* Shimmer skeleton */
+  .skeleton {
+    @apply rounded-lg bg-muted animate-pulse;
+  }
+
+  /* Dashboard stat card */
+  .stat-card {
+    @apply bg-card border border-border rounded-2xl shadow-card 
+           hover:shadow-luxury transition-all duration-300 p-6 flex flex-col gap-2;
+  }
+
+  /* Table */
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th {
+    @apply text-left font-medium text-muted-foreground px-4 py-3 border-b border-border;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 border-b border-border/50;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-muted/30;
+  }
+
+  /* Hero gradient overlay */
+  .hero-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(15, 22, 35, 0.3) 0%,
+      rgba(15, 22, 35, 0.5) 50%,
+      rgba(15, 22, 35, 0.8) 100%
+    );
+  }
+
+  /* Gradient divider */
+  .gold-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #c9a96e, transparent);
+  }
+
+  /* Input focus ring */
+  .input-luxury {
+    @apply border-border/60 focus:border-amber-400/60 focus:ring-amber-400/20 
+           transition-all duration-200;
+  }
+
+  /* Form field */
+  .form-field {
+    @apply relative;
+  }
+
+  /* Dev module warning banner */
+  .dev-banner {
+    @apply bg-amber-500/10 border border-amber-500/30 text-amber-600 
+           dark:text-amber-400 px-4 py-2 rounded-xl text-sm font-medium
+           flex items-center gap-2;
+  }
+
+  /* Status dot */
+  .status-dot-online  { @apply w-2 h-2 rounded-full bg-emerald-500 animate-pulse; }
+  .status-dot-offline { @apply w-2 h-2 rounded-full bg-red-500; }
+  .status-dot-warning { @apply w-2 h-2 rounded-full bg-amber-500 animate-pulse; }
+
+  /* Notification bell pulse */
+  .notif-pulse {
+    @apply absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full
+           flex items-center justify-center text-white text-[9px] font-bold;
+  }
+}
+
+/* ============================================================
+   UTILITIES
+   ============================================================ */
+
+@layer utilities {
+  .text-balance   { text-wrap: balance; }
+  .text-pretty    { text-wrap: pretty; }
+  .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+
+  /* Gradient borders via pseudo-element trick */
+  .border-gradient-gold {
+    position: relative;
+    border-radius: inherit;
+  }
+  .border-gradient-gold::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, #c9a96e, transparent, #c9a96e);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Noise texture overlay */
+  .noise {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  }
+}
+
+/* ============================================================
+   FULLCALENDAR OVERRIDES
+   ============================================================ */
+
+.fc {
+  font-family: var(--font-inter), sans-serif !important;
+}
+
+.fc .fc-toolbar-title {
+  font-family: var(--font-playfair), serif !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+}
+
+.fc .fc-button-primary {
+  background-color: hsl(var(--primary)) !important;
+  border-color: hsl(var(--primary)) !important;
+  border-radius: 0.5rem !important;
+  font-size: 0.8rem !important;
+  padding: 0.35rem 0.75rem !important;
+}
+
+.fc .fc-button-primary:hover {
+  background-color: hsl(var(--primary) / 0.85) !important;
+}
+
+.fc .fc-daygrid-day:hover {
+  background: hsl(var(--muted)) !important;
+}
+
+.fc .fc-event {
+  border-radius: 4px !important;
+  font-size: 0.75rem !important;
+  border: none !important;
+}
+
+/* ============================================================
+   RECHARTS OVERRIDES
+   ============================================================ */
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.1) !important;
+}
+
+.recharts-cartesian-axis-tick-value {
+  font-size: 0.7rem;
+  fill: hsl(var(--muted-foreground)) !important;
+}
+
+/* ============================================================
+   PAGE TRANSITIONS
+   ============================================================ */
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-transition {
+  animation: page-enter 0.35s ease-out;
+}

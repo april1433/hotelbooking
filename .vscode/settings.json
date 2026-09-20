@@ -1,0 +1,15 @@
+{
+  "css.validate": false,
+  "scss.validate": false,
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.experimental.classRegex": [],
+  "files.associations": {
+    "*.css": "tailwindcss",
+    "*.sql": "plaintext"
+  },
+  "sql.validate": false,
+  "mssql.format.enable": false,
+  "sqltools.formatLanguages": []
+}

@@ -30,6 +30,8 @@ export default function LoginPage() {
 
     let resolvedEmail = email.trim();
     if (resolvedEmail.toLowerCase() === "admin") {
+      resolvedEmail = "admin2@grandazure.com";
+    } else if (resolvedEmail.toLowerCase() === "admin1") {
       resolvedEmail = "admin@grandazure.com";
     } else if (resolvedEmail.toLowerCase() === "super") {
       resolvedEmail = "super@grandazure.com";
@@ -69,7 +71,11 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "An authentication error occurred.");
+      const rawMsg = err?.message;
+      const displayMsg = (!rawMsg || rawMsg === "{}" || rawMsg === "[object Object]")
+        ? "Invalid login credentials. Please check your email and password."
+        : rawMsg;
+      toast.error(displayMsg);
     } finally {
       setLoading(false);
     }

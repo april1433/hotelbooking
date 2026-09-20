@@ -117,11 +117,16 @@ export async function middleware(request: NextRequest) {
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const profile = profileData as any;
 
-    if (!profile || !allowedRoles.includes(profile.role)) {
+    // If profile doesn't exist yet (seed not run), redirect home instead of 403
+    if (!profile) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    if (!allowedRoles.includes(profile.role)) {
       return NextResponse.redirect(new URL("/403", request.url));
     }
   }

@@ -68,7 +68,7 @@ export default function LoginPage() {
         toast.success("Successfully logged in! Redirecting...");
 
         // Determine destination dashboard based on role
-        let target = (redirectTo && redirectTo !== "/") ? redirectTo : "/admin/dashboard";
+        let target = (redirectTo && redirectTo !== "/") ? redirectTo : "/";
 
         try {
           if (authData?.user) {
@@ -92,6 +92,7 @@ export default function LoginPage() {
             } else if (role === "super_admin" || role === "manager") {
               target = "/admin/dashboard";
             }
+            // If profile row not found (seed SQL not run), stay on home page
           }
         } catch {
           // Keep target fallback

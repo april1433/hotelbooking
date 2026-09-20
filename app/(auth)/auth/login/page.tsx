@@ -59,15 +59,47 @@ export default function LoginPage() {
           return;
         }
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: authData, error } = await supabase.auth.signInWithPassword({
           email: resolvedEmail,
           password,
         });
 
         if (error) throw error;
-        toast.success("Successfully logged in!");
-        router.push(redirectTo);
-        router.refresh();
+        toast.success("Successfully logged in! Redirecting...");
+
+        // Determine destination dashboard based on role
+        let target = (redirectTo && redirectTo !== "/") ? redirectTo : "/admin/dashboard";
+
+        try {
+          if (authData?.user) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", authData.user.id)
+              .maybeSingle();
+
+            const role = profile?.role || authData.user.user_metadata?.role;
+            if (role === "guest") {
+              target = (redirectTo && redirectTo !== "/") ? redirectTo : "/guest/dashboard";
+            } else if (role === "receptionist") {
+              target = "/staff/reception";
+            } else if (role === "housekeeping") {
+              target = "/staff/housekeeping";
+            } else if (role === "cashier") {
+              target = "/staff/cashier";
+            } else if (role === "maintenance") {
+              target = "/staff/maintenance";
+            } else if (role === "super_admin" || role === "manager") {
+              target = "/admin/dashboard";
+            }
+          }
+        } catch {
+          // Keep target fallback
+        }
+
+        // Use full navigation so cookies are completely refreshed and sent to server
+        window.location.href = target;
+        return;
       }
     } catch (err: any) {
       console.error(err);

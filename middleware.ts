@@ -69,8 +69,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // ── Allow auth pages and API routes through without login ──
+  // ── Allow public hotel pages, auth pages, and API routes through without login ──
+  const PUBLIC_ROUTES = [
+    "/",
+    "/rooms",
+    "/about",
+    "/contact",
+    "/amenities",
+    "/gallery",
+    "/restaurant",
+    "/spa",
+    "/booking",
+    "/checkout",
+    "/403",
+    "/maintenance",
+  ];
+
+  const isPublicPage = PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
   if (
+    isPublicPage ||
     isAuthPage ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/auth/callback")
@@ -78,7 +98,7 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // ── GLOBAL LOCK: Every other page requires login ──
+  // ── Protected areas require login ──
   if (!user) {
     const redirectUrl = new URL("/auth/login", request.url);
     redirectUrl.searchParams.set("redirectTo", pathname);

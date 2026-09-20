@@ -17,6 +17,7 @@ export function PublicNavbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState<Profile | null>(null);
+  const [authUser, setAuthUser] = useState<{ id: string; email?: string } | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -38,11 +39,29 @@ export function PublicNavbar() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
-        supabase.from("profiles").select("*").eq("id", data.user.id).single()
-          .then(({ data: profile }) => setUser(profile));
+        setAuthUser({ id: data.user.id, email: data.user.email });
+        supabase.from("profiles").select("*").eq("id", data.user.id).maybeSingle()
+          .then(({ data: profile }) => {
+            if (profile) setUser(profile);
+          });
       }
     });
 
+    // Listen for auth state changes (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setAuthUser({ id: session.user.id, email: session.user.email });
+        supabase.from("profiles").select("*").eq("id", session.user.id).maybeSingle()
+          .then(({ data: profile }) => { if (profile) setUser(profile); });
+      } else {
+        setAuthUser(null);
+        setUser(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
     async function loadSettings() {
       const supabase = createClient() as any;
       try {
@@ -139,8 +158,32 @@ export function PublicNavbar() {
               </button>
             )}
 
-            {user ? (
-              <UserMenu user={user} scrolled={scrolled || !isHome} />
+            {(user || authUser) ? (
+              user ? (
+                <UserMenu user={user} scrolled={scrolled || !isHome} />
+              ) : (
+                // Logged in but no profile yet (seed not run) — show basic user menu
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/"
+                    className={cn(
+                      "hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all",
+                      scrolled || !isHome
+                        ? "text-navy-700 hover:bg-navy-50 dark:text-cream-300"
+                        : "text-white/80 hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <User className="h-4 w-4" />
+                    {authUser?.email?.split("@")[0]}
+                  </Link>
+                  <button
+                    onClick={async () => { const sb = createClient(); await sb.auth.signOut(); window.location.href = "/auth/login"; }}
+                    className="px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition-all"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </div>
+              )
             ) : (
               <>
                 <Link

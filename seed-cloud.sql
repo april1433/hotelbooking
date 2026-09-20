@@ -1,5 +1,5 @@
 -- ==============================================================================
--- GRAND AZURE HOTEL PMS — COMPLETE CLOUD SEED SCRIPT
+-- GRAND AZURE HOTEL PMS — COMPLETE CLOUD SEED & DOUBLE-BOOKING SHIELD SCRIPT
 -- Run this in Supabase SQL Editor: https://supabase.com/dashboard/project/flzbtfpylaqchrjyvxod/sql/new
 -- ==============================================================================
 
@@ -17,7 +17,7 @@ VALUES (
   true
 ) ON CONFLICT (id) DO NOTHING;
 
--- 2. USER PROFILES (Connects to all verified accounts)
+-- 2. USER PROFILES (Connects to all verified default accounts)
 INSERT INTO public.profiles (id, hotel_id, role, first_name, last_name, display_name, email, is_active)
 VALUES
   ('783180e0-28a1-447e-a92d-3658b1d277bb', '11111111-0000-0000-0000-000000000001', 'super_admin', 'Super', 'Admin', 'Super Admin', 'super@grandazure.com', true),
@@ -34,7 +34,11 @@ ON CONFLICT (id) DO UPDATE SET
   last_name = EXCLUDED.last_name,
   display_name = EXCLUDED.display_name;
 
--- 3. ROOM TYPES (6 Categories matching localhost)
+-- 3. CLEAN UP EXISTING ROOMS & ROOM TYPES TO AVOID CONSTRAINT CONFLICTS
+DELETE FROM public.rooms WHERE hotel_id = '11111111-0000-0000-0000-000000000001';
+DELETE FROM public.room_types WHERE hotel_id = '11111111-0000-0000-0000-000000000001';
+
+-- 4. ROOM TYPES (6 Categories matching localhost)
 INSERT INTO public.room_types (id, hotel_id, name, slug, description, max_occupancy, max_adults, max_children, base_price, bed_type, is_active)
 VALUES
   ('a1111111-1111-1111-1111-111111111111', '11111111-0000-0000-0000-000000000001', 'Deluxe Suite', 'deluxe-suite', 'Spacious luxury suite featuring a private balcony and panoramic beach views.', 3, 2, 1, 8500, 'King', true),
@@ -42,42 +46,33 @@ VALUES
   ('a3333333-3333-3333-3333-333333333333', '11111111-0000-0000-0000-000000000001', 'Executive King', 'executive-king', 'Modern upscale room tailored for executives and couples seeking premium comfort.', 2, 2, 0, 6200, 'King', true),
   ('a4444444-4444-4444-4444-444444444444', '11111111-0000-0000-0000-000000000001', 'Standard Twin', 'standard-twin', 'Comfortable twin room ideal for friends or small families.', 2, 2, 1, 4500, 'Twin', true),
   ('a5555555-5555-5555-5555-555555555555', '11111111-0000-0000-0000-000000000001', 'Presidential Penthouse', 'presidential-penthouse', 'Top-floor penthouse with 360 ocean view, jacuzzi, butler service, and private lounge.', 6, 4, 2, 32000, 'Super King', true),
-  ('a6666666-6666-6666-6666-666666666666', '11111111-0000-0000-0000-000000000001', 'Garden Bungalow', 'garden-bungalow', 'Tranquil tropical bungalow surrounded by flora with open-air rainfall shower.', 3, 2, 1, 9800, 'Queen', true)
-ON CONFLICT (id) DO UPDATE SET 
-  name = EXCLUDED.name,
-  base_price = EXCLUDED.base_price,
-  description = EXCLUDED.description,
-  is_active = true;
+  ('a6666666-6666-6666-6666-666666666666', '11111111-0000-0000-0000-000000000001', 'Garden Bungalow', 'garden-bungalow', 'Tranquil tropical bungalow surrounded by flora with open-air rainfall shower.', 3, 2, 1, 9800, 'Queen', true);
 
--- 4. 20 ROOMS (Matching localhost rooms)
+-- 5. 20 ROOMS (Matching localhost rooms)
 INSERT INTO public.rooms (id, hotel_id, room_number, floor_number, room_type_id, status, cleaning_status, is_active)
 VALUES
   ('b0000000-0000-0000-0000-000000000101', '11111111-0000-0000-0000-000000000001', '101', 1, 'a1111111-1111-1111-1111-111111111111', 'available', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000102', '11111111-0000-0000-0000-000000000001', '102', 1, 'a1111111-1111-1111-1111-111111111111', 'occupied', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000102', '11111111-0000-0000-0000-000000000001', '102', 1, 'a1111111-1111-1111-1111-111111111111', 'available', 'clean', true),
   ('b0000000-0000-0000-0000-000000000103', '11111111-0000-0000-0000-000000000001', '103', 1, 'a3333333-3333-3333-3333-333333333333', 'available', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000104', '11111111-0000-0000-0000-000000000001', '104', 1, 'a4444444-4444-4444-4444-444444444444', 'reserved', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000105', '11111111-0000-0000-0000-000000000001', '105', 1, 'a4444444-4444-4444-4444-444444444444', 'maintenance', 'dirty', true),
-  ('b0000000-0000-0000-0000-000000000201', '11111111-0000-0000-0000-000000000001', '201', 2, 'a2222222-2222-2222-2222-222222222222', 'occupied', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000104', '11111111-0000-0000-0000-000000000001', '104', 1, 'a4444444-4444-4444-4444-444444444444', 'available', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000105', '11111111-0000-0000-0000-000000000001', '105', 1, 'a4444444-4444-4444-4444-444444444444', 'available', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000201', '11111111-0000-0000-0000-000000000001', '201', 2, 'a2222222-2222-2222-2222-222222222222', 'available', 'clean', true),
   ('b0000000-0000-0000-0000-000000000202', '11111111-0000-0000-0000-000000000001', '202', 2, 'a2222222-2222-2222-2222-222222222222', 'available', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000203', '11111111-0000-0000-0000-000000000001', '203', 2, 'a3333333-3333-3333-3333-333333333333', 'cleaning', 'in_progress', true),
+  ('b0000000-0000-0000-0000-000000000203', '11111111-0000-0000-0000-000000000001', '203', 2, 'a3333333-3333-3333-3333-333333333333', 'available', 'clean', true),
   ('b0000000-0000-0000-0000-000000000204', '11111111-0000-0000-0000-000000000001', '204', 2, 'a3333333-3333-3333-3333-333333333333', 'available', 'clean', true),
   ('b0000000-0000-0000-0000-000000000205', '11111111-0000-0000-0000-000000000001', '205', 2, 'a4444444-4444-4444-4444-444444444444', 'available', 'clean', true),
   ('b0000000-0000-0000-0000-000000000301', '11111111-0000-0000-0000-000000000001', '301', 3, 'a1111111-1111-1111-1111-111111111111', 'available', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000302', '11111111-0000-0000-0000-000000000001', '302', 3, 'a2222222-2222-2222-2222-222222222222', 'reserved', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000303', '11111111-0000-0000-0000-000000000001', '303', 3, 'a6666666-6666-6666-6666-666666666666', 'occupied', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000302', '11111111-0000-0000-0000-000000000001', '302', 3, 'a2222222-2222-2222-2222-222222222222', 'available', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000303', '11111111-0000-0000-0000-000000000001', '303', 3, 'a6666666-6666-6666-6666-666666666666', 'available', 'clean', true),
   ('b0000000-0000-0000-0000-000000000304', '11111111-0000-0000-0000-000000000001', '304', 3, 'a6666666-6666-6666-6666-666666666666', 'available', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000305', '11111111-0000-0000-0000-000000000001', '305', 3, 'a5555555-5555-5555-5555-555555555555', 'occupied', 'inspected', true),
+  ('b0000000-0000-0000-0000-000000000305', '11111111-0000-0000-0000-000000000001', '305', 3, 'a5555555-5555-5555-5555-555555555555', 'available', 'clean', true),
   ('b0000000-0000-0000-0000-000000000401', '11111111-0000-0000-0000-000000000001', '401', 4, 'a3333333-3333-3333-3333-333333333333', 'available', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000402', '11111111-0000-0000-0000-000000000001', '402', 4, 'a1111111-1111-1111-1111-111111111111', 'reserved', 'clean', true),
-  ('b0000000-0000-0000-0000-000000000403', '11111111-0000-0000-0000-000000000001', '403', 4, 'a4444444-4444-4444-4444-444444444444', 'out_of_order', 'dirty', true),
-  ('b0000000-0000-0000-0000-000000000501', '11111111-0000-0000-0000-000000000001', '501', 5, 'a5555555-5555-5555-5555-555555555555', 'available', 'inspected', true),
-  ('b0000000-0000-0000-0000-000000000502', '11111111-0000-0000-0000-000000000001', '502', 5, 'a2222222-2222-2222-2222-222222222222', 'occupied', 'clean', true)
-ON CONFLICT (id) DO UPDATE SET 
-  status = EXCLUDED.status,
-  cleaning_status = EXCLUDED.cleaning_status,
-  is_active = true;
+  ('b0000000-0000-0000-0000-000000000402', '11111111-0000-0000-0000-000000000001', '402', 4, 'a1111111-1111-1111-1111-111111111111', 'available', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000403', '11111111-0000-0000-0000-000000000001', '403', 4, 'a4444444-4444-4444-4444-444444444444', 'available', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000501', '11111111-0000-0000-0000-000000000001', '501', 5, 'a5555555-5555-5555-5555-555555555555', 'available', 'clean', true),
+  ('b0000000-0000-0000-0000-000000000502', '11111111-0000-0000-0000-000000000001', '502', 5, 'a2222222-2222-2222-2222-222222222222', 'available', 'clean', true);
 
--- 5. PUBLIC ACCESS POLICIES (Ensures website visitors can view hotel & rooms)
+-- 6. PUBLIC ACCESS POLICIES (Ensures website visitors can view hotel & rooms)
 ALTER TABLE public.hotels ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.room_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
@@ -93,3 +88,83 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN
   CREATE POLICY "Allow public read rooms" ON public.rooms FOR SELECT USING (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- 7. POSTGRES DOUBLE-BOOKING PROTECTION TRIGGER
+-- Declines any overlapping reservation for the same physical room
+CREATE OR REPLACE FUNCTION public.prevent_double_booking()
+RETURNS TRIGGER AS $$
+DECLARE
+  v_conflict_count INTEGER;
+BEGIN
+  IF NEW.room_id IS NOT NULL AND NEW.status NOT IN ('cancelled', 'refunded', 'checked_out') THEN
+    SELECT COUNT(*) INTO v_conflict_count
+    FROM public.reservations
+    WHERE room_id = NEW.room_id
+      AND id <> COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid)
+      AND status NOT IN ('cancelled', 'refunded', 'checked_out')
+      AND check_in_date < NEW.check_out_date
+      AND check_out_date > NEW.check_in_date;
+
+    IF v_conflict_count > 0 THEN
+      RAISE EXCEPTION 'BOOKING_DECLINED: Room is already reserved or occupied for the selected dates.';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_prevent_double_booking ON public.reservations;
+CREATE TRIGGER trg_prevent_double_booking
+BEFORE INSERT OR UPDATE ON public.reservations
+FOR EACH ROW EXECUTE FUNCTION public.prevent_double_booking();
+
+-- 8. POSTGRES STORED FUNCTION: CHECK ROOM AVAILABILITY & AUTO-ASSIGN
+CREATE OR REPLACE FUNCTION public.check_availability(
+  p_room_type_id UUID,
+  p_check_in DATE,
+  p_check_out DATE
+)
+RETURNS JSONB AS $$
+DECLARE
+  v_total_rooms INTEGER;
+  v_booked_rooms INTEGER;
+  v_available_rooms INTEGER;
+  v_available_room_id UUID;
+BEGIN
+  SELECT COUNT(*) INTO v_total_rooms
+  FROM public.rooms
+  WHERE room_type_id = p_room_type_id AND is_active = true;
+
+  SELECT COUNT(DISTINCT room_id) INTO v_booked_rooms
+  FROM public.reservations
+  WHERE room_type_id = p_room_type_id
+    AND status NOT IN ('cancelled', 'refunded', 'checked_out')
+    AND check_in_date < p_check_out
+    AND check_out_date > p_check_in;
+
+  SELECT r.id INTO v_available_room_id
+  FROM public.rooms r
+  WHERE r.room_type_id = p_room_type_id 
+    AND r.is_active = true
+    AND r.id NOT IN (
+      SELECT res.room_id 
+      FROM public.reservations res
+      WHERE res.room_id IS NOT NULL
+        AND res.status NOT IN ('cancelled', 'refunded', 'checked_out')
+        AND res.check_in_date < p_check_out
+        AND res.check_out_date > p_check_in
+    )
+  LIMIT 1;
+
+  v_available_rooms := GREATEST(0, v_total_rooms - v_booked_rooms);
+
+  RETURN jsonb_build_object(
+    'is_available', (v_available_rooms > 0 AND v_available_room_id IS NOT NULL),
+    'total_rooms', v_total_rooms,
+    'booked_rooms', v_booked_rooms,
+    'available_rooms', v_available_rooms,
+    'assigned_room_id', v_available_room_id
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -4,16 +4,17 @@ import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/types/supabase.types";
 
 function createStatelessAdminClient() {
-  return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      cookies: {
-        getAll() { return []; },
-        setAll() {},
-      },
-    }
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+  return createServerClient<Database>(supabaseUrl, supabaseKey, {
+    cookies: {
+      getAll() { return []; },
+      setAll() {},
+    },
+  });
 }
 
 export async function POST(req: Request) {
@@ -44,6 +45,28 @@ export async function POST(req: Request) {
     const supabase = createStatelessAdminClient() as any;
 
     // 0. Double-booking check: Decline if all rooms of this type are already taken for these dates
+    // 0a. Check via PostgreSQL RPC if present
+    try {
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc("check_availability", {
+        p_room_type_id: roomTypeId,
+        p_check_in: checkInDate,
+        p_check_out: checkOutDate,
+      });
+
+      if (!rpcErr && rpcRes && rpcRes.is_available === false) {
+        return NextResponse.json(
+          {
+            error: "Booking Declined: All suites of this category are fully booked for your selected dates. Please select different dates.",
+            code: "ROOM_OCCUPIED",
+          },
+          { status: 409 }
+        );
+      }
+    } catch {
+      // Fall through to direct table check
+    }
+
+    // 0b. Direct query check on rooms and reservations
     const { data: totalRooms } = await supabase
       .from("rooms")
       .select("id")
@@ -58,12 +81,10 @@ export async function POST(req: Request) {
       .lt("check_in_date", checkOutDate)
       .gt("check_out_date", checkInDate);
 
-    if (
-      totalRooms &&
-      totalRooms.length > 0 &&
-      overlappingReservations &&
-      overlappingReservations.length >= totalRooms.length
-    ) {
+    const capacity = (totalRooms && totalRooms.length > 0) ? totalRooms.length : 3;
+    const bookedCount = overlappingReservations ? overlappingReservations.length : 0;
+
+    if (bookedCount >= capacity) {
       return NextResponse.json(
         {
           error: "Booking Declined: All suites of this category are fully booked for your selected dates. Please select different dates.",

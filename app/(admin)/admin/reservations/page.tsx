@@ -279,6 +279,22 @@ export default function ReservationsPage() {
 
       const confirmationNum = "CONF-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+      // 2b. Double-booking check: Decline if room or suite is already taken
+      if (selectedRoomId) {
+        const { data: conflict } = await supabase
+          .from("reservations")
+          .select("id")
+          .eq("room_id", selectedRoomId)
+          .not("status", "in", '("cancelled","refunded","checked_out")')
+          .lt("check_in_date", checkOut)
+          .gt("check_out_date", checkIn)
+          .limit(1);
+
+        if (conflict && conflict.length > 0) {
+          throw new Error("Booking Declined: Room is already booked or occupied for the selected dates.");
+        }
+      }
+
       // 3. Create Reservation
       const { data: reservation, error: resErr } = await supabase
         .from("reservations")

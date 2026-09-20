@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, Button, Inpu
 import { UserPlus, Calendar, CreditCard, BedDouble, Save, CheckCircle2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 interface RoomType {
   id: string;
@@ -88,6 +89,21 @@ export default function WalkInPage() {
 
       if (!profile) return;
 
+      // 1b. Double-booking check: Decline if room is already taken for selected dates
+      const { data: conflict } = await supabase
+        .from("reservations")
+        .select("id")
+        .eq("room_id", selectedRoomId)
+        .not("status", "in", '("cancelled","refunded","checked_out")')
+        .lt("check_in_date", checkOut)
+        .gt("check_out_date", checkIn)
+        .limit(1);
+
+      if (conflict && conflict.length > 0) {
+        toast.error("Booking Declined: Room is already reserved or occupied for these dates.");
+        return;
+      }
+
       // 2. Create reservation and update room status to reserved/occupied
       const { error: resError } = await supabase
         .from("reservations")
@@ -101,7 +117,10 @@ export default function WalkInPage() {
           source: "walk_in",
         } as any);
 
-      if (resError) return;
+      if (resError) {
+        toast.error(resError.message || "Booking Declined: Unable to reserve room.");
+        return;
+      }
 
       await supabase
         .from("rooms" as any)
@@ -109,8 +128,8 @@ export default function WalkInPage() {
         .eq("id", selectedRoomId);
 
       setSaved(true);
-    } catch {
-      // Ignore
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create walk-in reservation.");
     }
   };
 

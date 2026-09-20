@@ -157,6 +157,24 @@ function BookingForm() {
     };
 
     try {
+      // 1. Double-booking check: Verify room is not taken for selected dates
+      const checkRes = await fetch("/api/booking/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roomTypeId: selectedRoom,
+          checkInDate: checkIn,
+          checkOutDate: checkOut,
+        }),
+      });
+      const checkData = await checkRes.json();
+      if (!checkRes.ok || checkData.available === false) {
+        throw new Error(
+          checkData.error ||
+            "Booking Declined: All suites of this category are fully booked for your selected dates. Please choose different dates."
+        );
+      }
+
       if (paymentMethod === "gcash") {
         sessionStorage.setItem("azure_pending_booking", JSON.stringify(bookingPayload));
         window.location.assign("/checkout/gcash");

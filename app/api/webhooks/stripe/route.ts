@@ -4,11 +4,12 @@ import Stripe from "stripe";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/types/supabase.types";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia" as any,
-});
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+// Lazily initialized to avoid build-time failures when env vars are absent
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-01-27.acacia" as any,
+  });
+}
 
 // Helper to create an admin client without cookies (since webhooks are stateless)
 function createStatelessAdminClient() {
@@ -25,6 +26,8 @@ function createStatelessAdminClient() {
 }
 
 export async function POST(req: Request) {
+  const stripe = getStripe();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
 

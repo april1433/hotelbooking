@@ -2,11 +2,15 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-01-27.acacia" as any,
-});
+// Lazily initialize Stripe client to prevent build-time crashes when STRIPE_SECRET_KEY is not set
+function getStripe() {
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2025-01-27.acacia" as any,
+  });
+}
 
 export async function POST(req: Request) {
+  const stripe = getStripe();
   try {
     const {
       hotelId,

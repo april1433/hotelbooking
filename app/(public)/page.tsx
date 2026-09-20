@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_ROOM_TYPES } from "@/constants";
 
 const AMENITIES = [
   { icon: Wifi, title: "High-Speed Wi-Fi", desc: "Complimentary gigabit internet across the entire estate." },
@@ -52,7 +53,11 @@ export default function HomePage() {
           .select("room_type_id");
 
         const activeRoomTypeIds = new Set(roomsData?.map((r: any) => r.room_type_id) ?? []);
-        const dynamicRoomTypes = (rtData ?? []).filter((rt: any) => activeRoomTypeIds.has(rt.id));
+        let dynamicRoomTypes = (rtData ?? []).filter((rt: any) => activeRoomTypeIds.has(rt.id));
+
+        if (dynamicRoomTypes.length === 0) {
+          dynamicRoomTypes = (rtData && rtData.length > 0) ? rtData : DEFAULT_ROOM_TYPES;
+        }
 
         setFeaturedRooms(dynamicRoomTypes.slice(0, 3));
       } catch (err) {

@@ -43,6 +43,40 @@ export async function POST(req: Request) {
 
     const supabase = createStatelessAdminClient() as any;
 
+    // 0. Double-booking check: Decline if all rooms of this type are already taken for these dates
+    const { data: totalRooms } = await supabase
+      .from("rooms")
+      .select("id")
+      .eq("room_type_id", roomTypeId)
+      .eq("is_active", true);
+
+    const { data: overlappingReservations } = await supabase
+      .from("reservations")
+      .select("id, room_id")
+      .eq("room_type_id", roomTypeId)
+      .not("status", "in", '("cancelled","refunded","checked_out")')
+      .lt("check_in_date", checkOutDate)
+      .gt("check_out_date", checkInDate);
+
+    if (
+      totalRooms &&
+      totalRooms.length > 0 &&
+      overlappingReservations &&
+      overlappingReservations.length >= totalRooms.length
+    ) {
+      return NextResponse.json(
+        {
+          error: "Booking Declined: All suites of this category are fully booked for your selected dates. Please select different dates.",
+          code: "ROOM_OCCUPIED",
+        },
+        { status: 409 }
+      );
+    }
+
+    const bookedRoomIds = new Set((overlappingReservations || []).map((r: any) => r.room_id).filter(Boolean));
+    const availableRoom = (totalRooms || []).find((r: any) => !bookedRoomIds.has(r.id));
+    const assignedRoomId = availableRoom?.id || null;
+
     // 1. Create or retrieve the Guest record
     let guestId: string | null = null;
 
@@ -81,6 +115,7 @@ export async function POST(req: Request) {
       .from("reservations")
       .insert({
         hotel_id: hotelId,
+        room_id: assignedRoomId,
         confirmation_number: confirmationNumber,
         guest_id: guestId,
         profile_id: profileId || null,

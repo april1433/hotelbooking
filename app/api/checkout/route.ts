@@ -35,6 +35,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Double-booking check: Decline if all suites of this category are full for these dates
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const { createServerClient } = await import("@supabase/ssr");
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.SUPABASE_SERVICE_ROLE_KEY,
+        { cookies: { getAll() { return []; }, setAll() {} } }
+      ) as any;
+
+      const { data: totalRooms } = await supabase
+        .from("rooms")
+        .select("id")
+        .eq("room_type_id", roomTypeId)
+        .eq("is_active", true);
+
+      const { data: overlappingReservations } = await supabase
+        .from("reservations")
+        .select("id")
+        .eq("room_type_id", roomTypeId)
+        .not("status", "in", '("cancelled","refunded","checked_out")')
+        .lt("check_in_date", checkOutDate)
+        .gt("check_out_date", checkInDate);
+
+      if (
+        totalRooms &&
+        totalRooms.length > 0 &&
+        overlappingReservations &&
+        overlappingReservations.length >= totalRooms.length
+      ) {
+        return NextResponse.json(
+          {
+            error: "Booking Declined: All rooms of this type are already booked for the selected dates. Please choose different dates.",
+            code: "ROOM_OCCUPIED",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     // Convert totalAmount to cents for Stripe
     const amountInCents = Math.round(totalAmount * 100);
 

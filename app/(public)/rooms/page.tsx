@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Compass, Loader2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui";
 import { createClient } from "@/lib/supabase/client";
+import { DEFAULT_HOTEL, DEFAULT_ROOM_TYPES } from "@/constants";
 
 const FALLBACK_IMAGES: Record<string, string> = {
   presidential: "https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=1200&auto=format&fit=crop",
@@ -60,8 +61,14 @@ export default function RoomsPage() {
           .select("room_type_id");
 
         const activeRoomTypeIds = new Set(roomsData?.map((r: any) => r.room_type_id) ?? []);
-        const dynamicRoomTypes = (rtData ?? []).filter((rt: any) => activeRoomTypeIds.has(rt.id));
+        let dynamicRoomTypes = (rtData ?? []).filter((rt: any) => activeRoomTypeIds.has(rt.id));
 
+        // Fallback to default catalog if database is not yet seeded
+        if (dynamicRoomTypes.length === 0) {
+          dynamicRoomTypes = (rtData && rtData.length > 0) ? rtData : DEFAULT_ROOM_TYPES;
+        }
+
+        setHotels((hotelData && hotelData.length > 0) ? hotelData : [DEFAULT_HOTEL]);
         setRoomTypes(dynamicRoomTypes);
       } catch (err) {
         console.error("Failed to load room types:", err);

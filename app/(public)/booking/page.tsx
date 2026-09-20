@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { CalendarDays, Star, Receipt, Check, User, CreditCard, Loader2 } from "lucide-react";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { calculateNights, formatCurrency } from "@/lib/utils";
-import { BOOKING_EXTRAS } from "@/constants";
+import { BOOKING_EXTRAS, DEFAULT_HOTEL, DEFAULT_ROOM_TYPES } from "@/constants";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 
@@ -42,7 +42,7 @@ function BookingForm() {
     async function loadHotels() {
       const supabase = createClient() as any;
       const { data } = await supabase.from("hotels").select("id, name").eq("is_active", true);
-      const list = data ?? [];
+      const list = (data && data.length > 0) ? data : [DEFAULT_HOTEL];
       setHotels(list);
 
       // Read initial hotelId from URL
@@ -74,7 +74,11 @@ function BookingForm() {
         .select("room_type_id");
 
       const activeRoomTypeIds = new Set(roomsData?.map((r: any) => r.room_type_id) ?? []);
-      const list = (rtData ?? []).filter((rt: any) => activeRoomTypeIds.has(rt.id));
+      let list = (rtData ?? []).filter((rt: any) => activeRoomTypeIds.has(rt.id));
+
+      if (list.length === 0) {
+        list = (rtData && rtData.length > 0) ? rtData : DEFAULT_ROOM_TYPES;
+      }
 
       setRoomTypes(list);
 

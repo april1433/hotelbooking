@@ -278,12 +278,12 @@ export const DEFAULT_ROOM_TYPES = [
 ];
 
 export const DEFAULT_ROOMS = [
-  { id: "b0000000-0000-0000-0000-000000000101", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "101", floor_number: 1, room_type_id: "a1111111-1111-1111-1111-111111111111", status: "occupied", cleaning_status: "clean", is_active: true, room_types: { name: "Deluxe Suite", base_price: 8500, max_occupancy: 3 }, hotels: { name: "Grand Azure Hotel & Resort" } },
+  { id: "b0000000-0000-0000-0000-000000000101", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "101", floor_number: 1, room_type_id: "a1111111-1111-1111-1111-111111111111", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Deluxe Suite", base_price: 8500, max_occupancy: 3 }, hotels: { name: "Grand Azure Hotel & Resort" } },
   { id: "b0000000-0000-0000-0000-000000000102", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "102", floor_number: 1, room_type_id: "a1111111-1111-1111-1111-111111111111", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Deluxe Suite", base_price: 8500, max_occupancy: 3 }, hotels: { name: "Grand Azure Hotel & Resort" } },
-  { id: "b0000000-0000-0000-0000-000000000103", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "103", floor_number: 1, room_type_id: "a3333333-3333-3333-3333-333333333333", status: "occupied", cleaning_status: "clean", is_active: true, room_types: { name: "Executive King", base_price: 6200, max_occupancy: 2 }, hotels: { name: "Grand Azure Hotel & Resort" } },
+  { id: "b0000000-0000-0000-0000-000000000103", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "103", floor_number: 1, room_type_id: "a3333333-3333-3333-3333-333333333333", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Executive King", base_price: 6200, max_occupancy: 2 }, hotels: { name: "Grand Azure Hotel & Resort" } },
   { id: "b0000000-0000-0000-0000-000000000104", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "104", floor_number: 1, room_type_id: "a4444444-4444-4444-4444-444444444444", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Standard Twin", base_price: 4500, max_occupancy: 2 }, hotels: { name: "Grand Azure Hotel & Resort" } },
   { id: "b0000000-0000-0000-0000-000000000105", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "105", floor_number: 1, room_type_id: "a4444444-4444-4444-4444-444444444444", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Standard Twin", base_price: 4500, max_occupancy: 2 }, hotels: { name: "Grand Azure Hotel & Resort" } },
-  { id: "b0000000-0000-0000-0000-000000000201", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "201", floor_number: 2, room_type_id: "a2222222-2222-2222-2222-222222222222", status: "occupied", cleaning_status: "clean", is_active: true, room_types: { name: "Ocean View Villa", base_price: 15000, max_occupancy: 4 }, hotels: { name: "Grand Azure Hotel & Resort" } },
+  { id: "b0000000-0000-0000-0000-000000000201", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "201", floor_number: 2, room_type_id: "a2222222-2222-2222-2222-222222222222", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Ocean View Villa", base_price: 15000, max_occupancy: 4 }, hotels: { name: "Grand Azure Hotel & Resort" } },
   { id: "b0000000-0000-0000-0000-000000000202", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "202", floor_number: 2, room_type_id: "a2222222-2222-2222-2222-222222222222", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Ocean View Villa", base_price: 15000, max_occupancy: 4 }, hotels: { name: "Grand Azure Hotel & Resort" } },
   { id: "b0000000-0000-0000-0000-000000000203", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "203", floor_number: 2, room_type_id: "a3333333-3333-3333-3333-333333333333", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Executive King", base_price: 6200, max_occupancy: 2 }, hotels: { name: "Grand Azure Hotel & Resort" } },
   { id: "b0000000-0000-0000-0000-000000000204", hotel_id: "11111111-0000-0000-0000-000000000001", room_number: "204", floor_number: 2, room_type_id: "a3333333-3333-3333-3333-333333333333", status: "available", cleaning_status: "clean", is_active: true, room_types: { name: "Executive King", base_price: 6200, max_occupancy: 2 }, hotels: { name: "Grand Azure Hotel & Resort" } },
@@ -303,73 +303,11 @@ export const DEFAULT_ROOMS = [
 export const DEFAULT_STAFF = [
   { id: "783180e0-28a1-447e-a92d-3658b1d277bb", first_name: "Super", last_name: "Admin", display_name: "Super Admin", email: "super@grandazure.com", role: "super_admin", is_active: true, phone: "+63 917 000 0001" },
   { id: "5666ade5-264c-472a-89ae-45c50dff1bbe", first_name: "System", last_name: "Admin", display_name: "System Admin", email: "admin2@grandazure.com", role: "super_admin", is_active: true, phone: "+63 917 000 0002" },
-  { id: "e6740e03-872a-48fe-9c4f-327941285113", first_name: "Maria", last_name: "Santos", display_name: "Maria Santos", email: "manager@grandazure.com", role: "manager", is_active: true, phone: "+63 917 111 2222" },
-  { id: "2de78f74-35d0-410d-8020-c83f585f697b", first_name: "Juan", last_name: "Dela Cruz", display_name: "Juan Dela Cruz", email: "reception@grandazure.com", role: "receptionist", is_active: true, phone: "+63 917 333 4444" },
-  { id: "9d434352-18e2-47f1-bee3-a9e57171369b", first_name: "Elena", last_name: "Reyes", display_name: "Elena Reyes", email: "housekeeping@grandazure.com", role: "housekeeping", is_active: true, phone: "+63 917 555 6666" },
-  { id: "0e10d1f2-8456-441f-bcea-50254b828d4c", first_name: "Carlos", last_name: "Mendoza", display_name: "Carlos Mendoza", email: "cashier@grandazure.com", role: "cashier", is_active: true, phone: "+63 917 777 8888" },
-  { id: "9ed06b0b-0111-4d55-a3ef-89de98a3bf5d", first_name: "Ramon", last_name: "Bautista", display_name: "Ramon Bautista", email: "maintenance@grandazure.com", role: "maintenance", is_active: true, phone: "+63 917 999 0000" },
 ];
 
-export const DEFAULT_GUESTS = [
-  { id: "g1111111-0000-0000-0000-000000000001", hotel_id: "11111111-0000-0000-0000-000000000001", first_name: "Sofia", last_name: "Garcia", email: "guest@grandazure.com", phone: "+63 917 123 4567", nationality: "Filipino", is_vip: true, hotels: { name: "Grand Azure Hotel & Resort" } },
-  { id: "g2222222-0000-0000-0000-000000000002", hotel_id: "11111111-0000-0000-0000-000000000001", first_name: "Alexander", last_name: "Wright", email: "alex.wright@example.com", phone: "+1 415 555 2671", nationality: "American", is_vip: false, hotels: { name: "Grand Azure Hotel & Resort" } },
-  { id: "g3333333-0000-0000-0000-000000000003", hotel_id: "11111111-0000-0000-0000-000000000001", first_name: "Hiroshi", last_name: "Tanaka", email: "h.tanaka@example.com", phone: "+81 90 1234 5678", nationality: "Japanese", is_vip: true, hotels: { name: "Grand Azure Hotel & Resort" } },
-  { id: "g4444444-0000-0000-0000-000000000004", hotel_id: "11111111-0000-0000-0000-000000000001", first_name: "Chloe", last_name: "Dupont", email: "c.dupont@example.com", phone: "+33 6 12 34 56 78", nationality: "French", is_vip: false, hotels: { name: "Grand Azure Hotel & Resort" } },
-];
+export const DEFAULT_GUESTS: any[] = [];
 
-export const DEFAULT_RESERVATIONS = [
-  {
-    id: "r1111111-0000-0000-0000-000000000001",
-    confirmation_number: "CONF-GA101",
-    status: "checked_in",
-    check_in_date: new Date().toISOString().slice(0, 10),
-    check_out_date: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
-    total_amount: 17000,
-    source: "direct",
-    hotel_id: "11111111-0000-0000-0000-000000000001",
-    room_type_id: "a1111111-1111-1111-1111-111111111111",
-    guests: { first_name: "Sofia", last_name: "Garcia", email: "guest@grandazure.com" },
-    rooms: { room_number: "101", room_types: { name: "Deluxe Suite" } },
-  },
-  {
-    id: "r2222222-0000-0000-0000-000000000002",
-    confirmation_number: "CONF-GA201",
-    status: "checked_in",
-    check_in_date: new Date().toISOString().slice(0, 10),
-    check_out_date: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10),
-    total_amount: 45000,
-    source: "direct",
-    hotel_id: "11111111-0000-0000-0000-000000000001",
-    room_type_id: "a2222222-2222-2222-2222-222222222222",
-    guests: { first_name: "Alexander", last_name: "Wright", email: "alex.wright@example.com" },
-    rooms: { room_number: "201", room_types: { name: "Ocean View Villa" } },
-  },
-  {
-    id: "r3333333-0000-0000-0000-000000000003",
-    confirmation_number: "CONF-GA103",
-    status: "confirmed",
-    check_in_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-    check_out_date: new Date(Date.now() + 86400000 * 4).toISOString().slice(0, 10),
-    total_amount: 18600,
-    source: "direct",
-    hotel_id: "11111111-0000-0000-0000-000000000001",
-    room_type_id: "a3333333-3333-3333-3333-333333333333",
-    guests: { first_name: "Hiroshi", last_name: "Tanaka", email: "h.tanaka@example.com" },
-    rooms: { room_number: "103", room_types: { name: "Executive King" } },
-  },
-  {
-    id: "r4444444-0000-0000-0000-000000000004",
-    confirmation_number: "CONF-GA303",
-    status: "confirmed",
-    check_in_date: new Date().toISOString().slice(0, 10),
-    check_out_date: new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10),
-    total_amount: 19600,
-    source: "direct",
-    hotel_id: "11111111-0000-0000-0000-000000000001",
-    room_type_id: "a6666666-6666-6666-6666-666666666666",
-    guests: { first_name: "Chloe", last_name: "Dupont", email: "c.dupont@example.com" },
-    rooms: { room_number: "303", room_types: { name: "Garden Bungalow" } },
-  },
-];
+export const DEFAULT_RESERVATIONS: any[] = [];
+
 
 

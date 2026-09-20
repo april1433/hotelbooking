@@ -136,6 +136,10 @@ export async function POST(req: Request) {
       // 2. Generate a secure, unique confirmation number
       const confirmationNumber = "CONF-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
+      const checkInMs = new Date(checkInDate).getTime();
+      const checkOutMs = new Date(checkOutDate).getTime();
+      const nights = Math.max(1, Math.round((checkOutMs - checkInMs) / (1000 * 60 * 60 * 24)));
+
       // 3. Create the Reservation record
       const { data: reservation, error: resErr } = await supabase
         .from("reservations")
@@ -149,7 +153,7 @@ export async function POST(req: Request) {
           check_out_date: checkOutDate,
           adults: parseInt(adults || "1", 10),
           children: parseInt(children || "0", 10),
-          room_rate: parseFloat(subtotal) / (new Date(checkOutDate).getDate() - new Date(checkInDate).getDate() || 1), // rough rate
+          room_rate: parseFloat(subtotal) / nights,
           subtotal: parseFloat(subtotal),
           tax_amount: parseFloat(taxAmount || "0"),
           total_amount: parseFloat(totalAmount),

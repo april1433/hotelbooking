@@ -38,14 +38,10 @@ export default function GuestsPage() {
         .from("guests")
         .select("*, hotels(name)")
         .order("created_at", { ascending: false });
-      if (data && data.length > 0) {
-        setGuests(data);
-      } else {
-        setGuests(DEFAULT_GUESTS);
-      }
+      setGuests(data || []);
     } catch (err) {
       console.error("Error fetching guests:", err);
-      setGuests(DEFAULT_GUESTS);
+      setGuests([]);
     } finally {
       setLoading(false);
     }
@@ -68,6 +64,11 @@ export default function GuestsPage() {
   useEffect(() => {
     fetchGuests();
     loadHotels();
+
+    const interval = setInterval(() => {
+      fetchGuests();
+    }, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = guests.filter(g => {

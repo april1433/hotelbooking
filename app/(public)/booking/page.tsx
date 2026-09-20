@@ -122,6 +122,11 @@ function BookingForm() {
       return;
     }
 
+    if (new Date(checkOut) <= new Date(checkIn)) {
+      toast.error("Check-out date must be after check-in date.");
+      return;
+    }
+
     const email = user ? user.email : guestEmail;
     const firstName = profile ? profile.first_name : guestFirstName;
     const lastName = profile ? profile.last_name : guestLastName;

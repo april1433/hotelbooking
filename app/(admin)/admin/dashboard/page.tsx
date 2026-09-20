@@ -70,27 +70,33 @@ export default function AdminDashboardPage() {
 
       let openTickets = (ticketsRes.data ?? []).length;
 
-      // When database has no records yet, use the default catalog metrics so dashboard reflects hotel inventory
+      // When database has no records yet, totalRooms is 20 and all metrics start at 0
       if (totalRooms === 0) {
         totalRooms = 20;
-        occupiedRooms = 3;
-        checkInsToday = 2;
-        checkOutsToday = 1;
-        todayRevenue = 32500;
-        openTickets = 1;
+        occupiedRooms = 0;
+        checkInsToday = 0;
+        checkOutsToday = 0;
+        todayRevenue = 0;
+        openTickets = 0;
       }
 
       const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 1000) / 10 : 0;
 
       setStats({ occupancyRate, occupiedRooms, totalRooms, checkInsToday, checkOutsToday, todayRevenue, openTickets });
     } catch {
-      setStats({ occupancyRate: 15.0, occupiedRooms: 3, totalRooms: 20, checkInsToday: 2, checkOutsToday: 1, todayRevenue: 32500, openTickets: 1 });
+      setStats({ occupancyRate: 0.0, occupiedRooms: 0, totalRooms: 20, checkInsToday: 0, checkOutsToday: 0, todayRevenue: 0, openTickets: 0 });
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { fetchStats(); }, []);
+  useEffect(() => { 
+    fetchStats(); 
+    const interval = setInterval(() => {
+      fetchStats();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const isEmpty = stats && stats.totalRooms === 0;
 

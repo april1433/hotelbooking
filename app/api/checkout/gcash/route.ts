@@ -128,6 +128,13 @@ export async function POST(req: Request) {
       guestId = newGuest.id;
     }
 
+    const checkInMs = new Date(checkInDate).getTime();
+    const checkOutMs = new Date(checkOutDate).getTime();
+    if (isNaN(checkInMs) || isNaN(checkOutMs) || checkOutMs <= checkInMs) {
+      return NextResponse.json({ error: "Check-out date must be after check-in date" }, { status: 400 });
+    }
+    const nights = Math.max(1, Math.round((checkOutMs - checkInMs) / (1000 * 60 * 60 * 24)));
+
     // 2. Generate confirmation number
     const confirmationNumber = "CONF-" + Math.random().toString(36).substring(2, 10).toUpperCase();
 
@@ -145,7 +152,7 @@ export async function POST(req: Request) {
         check_out_date: checkOutDate,
         adults: parseInt(adults || "1", 10),
         children: parseInt(children || "0", 10),
-        room_rate: parseFloat(subtotal) / (new Date(checkOutDate).getDate() - new Date(checkInDate).getDate() || 1),
+        room_rate: parseFloat(subtotal) / nights,
         subtotal: parseFloat(subtotal),
         tax_amount: parseFloat(taxAmount || "0"),
         total_amount: parseFloat(totalAmount),

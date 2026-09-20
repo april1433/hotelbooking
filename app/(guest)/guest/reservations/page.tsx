@@ -8,6 +8,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 
+import { toast } from "sonner";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Reservation = Record<string, any>;
 
@@ -39,7 +41,35 @@ export default function GuestReservationsPage() {
     }
   }
 
-  useEffect(() => { fetchReservations(); }, [user]);
+  useEffect(() => {
+    fetchReservations();
+
+    // Verify session_id from Stripe redirect if present
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get("session_id");
+      if (sessionId) {
+        fetch("/api/checkout/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        })
+          .then(res => res.json())
+          .then(res => {
+            if (res.success) {
+              toast.success("Booking confirmed! Welcome to Grand Azure.");
+              fetchReservations();
+            }
+          })
+          .catch(() => {});
+      }
+    }
+
+    const interval = setInterval(() => {
+      fetchReservations();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const filtered = reservations.filter(r =>
     filter === "all" || r.status === filter

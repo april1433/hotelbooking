@@ -1,7 +1,7 @@
 import pg from "pg";
 
 const DB_URL =
-  "postgresql://postgres.sfmzelhjgidhgafmyvrm:jay%40gmail.com@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres";
+  "postgresql://postgres.flzbtfpylaqchrjyvxod:jay%40gmail.com@aws-0-ap-south-1.pooler.supabase.com:6543/postgres";
 
 async function main() {
   const client = new pg.Client({ connectionString: DB_URL, ssl: { rejectUnauthorized: false } });

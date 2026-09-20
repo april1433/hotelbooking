@@ -54,7 +54,7 @@ export default function ReservationsPage() {
     setLoading(true);
     const supabase = createClient() as any;
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("reservations")
         .select(`
           id, confirmation_number, status, check_in_date, check_out_date, total_amount, source,
@@ -63,14 +63,13 @@ export default function ReservationsPage() {
           rooms(room_number, room_types(name))
         `)
         .order("created_at", { ascending: false });
-      if (data && data.length > 0) {
-        setReservations(data);
-      } else {
-        setReservations(DEFAULT_RESERVATIONS);
+      if (error) {
+        console.error("Database error fetching reservations:", error);
       }
+      setReservations(data || []);
     } catch (err) {
       console.error("Error fetching reservations:", err);
-      setReservations(DEFAULT_RESERVATIONS);
+      setReservations([]);
     } finally {
       setLoading(false);
     }
@@ -100,6 +99,12 @@ export default function ReservationsPage() {
   useEffect(() => {
     fetchReservations();
     loadConfig();
+
+    // Auto-poll every 8 seconds so any newly booked reservations immediately appear in the menu
+    const interval = setInterval(() => {
+      fetchReservations();
+    }, 8000);
+    return () => clearInterval(interval);
   }, []);
 
   function handleExportCSV() {
@@ -224,7 +229,7 @@ export default function ReservationsPage() {
     total: reservations.length,
     confirmed: reservations.filter(r => r.status === "confirmed").length,
     checkedIn: reservations.filter(r => r.status === "checked_in").length,
-    revenue: reservations.filter(r => !["cancelled", "no_show"].includes(r.status)).reduce((s, r) => s + (r.total_amount ?? 0), 0),
+    revenue: reservations.filter(r => !["cancelled", "no_show"].includes(r.status)).reduce((s, r) => s + (Number(r.total_amount) || 0), 0),
   };
 
   const openNewReservationModal = () => {

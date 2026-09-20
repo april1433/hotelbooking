@@ -19,7 +19,7 @@ export async function POST() {
     }) as any;
 
     // 1. Hotel
-    await supabase.from("hotels").upsert({
+    const { error: hotelErr } = await supabase.from("hotels").upsert({
       id: DEFAULT_HOTEL.id,
       name: "Grand Azure Hotel & Resort",
       slug: "grand-azure-hotel",
@@ -30,6 +30,7 @@ export async function POST() {
       email: "info@grandazure.com",
       is_active: true,
     }, { onConflict: "id" });
+    if (hotelErr) throw new Error(`Hotels upsert failed: ${hotelErr.message}`);
 
     // 2. Room Types
     const cleanRoomTypes = DEFAULT_ROOM_TYPES.map(rt => ({
@@ -46,22 +47,24 @@ export async function POST() {
       size_sqm: rt.size_sqm,
       is_active: true,
     }));
-    await supabase.from("room_types").upsert(cleanRoomTypes, { onConflict: "id" });
+    const { error: rtErr } = await supabase.from("room_types").upsert(cleanRoomTypes, { onConflict: "id" });
+    if (rtErr) throw new Error(`Room types upsert failed: ${rtErr.message}`);
 
-    // 3. Rooms
+    // 3. Rooms (all 20 available and clean)
     const cleanRooms = DEFAULT_ROOMS.map(r => ({
       id: r.id,
       hotel_id: r.hotel_id,
       room_number: r.room_number,
       floor_number: r.floor_number,
       room_type_id: r.room_type_id,
-      status: r.status,
-      cleaning_status: r.cleaning_status,
+      status: "available",
+      cleaning_status: "clean",
       is_active: true,
     }));
-    await supabase.from("rooms").upsert(cleanRooms, { onConflict: "id" });
+    const { error: rErr } = await supabase.from("rooms").upsert(cleanRooms, { onConflict: "id" });
+    if (rErr) throw new Error(`Rooms upsert failed: ${rErr.message}`);
 
-    // 4. Profiles
+    // 4. Profiles (only admin and super admin)
     const cleanStaff = DEFAULT_STAFF.map(s => ({
       id: s.id,
       hotel_id: DEFAULT_HOTEL.id,
@@ -73,11 +76,12 @@ export async function POST() {
       phone: s.phone,
       is_active: true,
     }));
-    await supabase.from("profiles").upsert(cleanStaff, { onConflict: "id" });
+    const { error: staffErr } = await supabase.from("profiles").upsert(cleanStaff, { onConflict: "id" });
+    if (staffErr) throw new Error(`Profiles upsert failed: ${staffErr.message}`);
 
     return NextResponse.json({
       success: true,
-      message: "Database seeded successfully",
+      message: "Database seeded successfully with clean rooms and admin staff",
       seeded: {
         hotel: 1,
         roomTypes: cleanRoomTypes.length,

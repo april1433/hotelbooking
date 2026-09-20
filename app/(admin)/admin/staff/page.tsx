@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, Button, Input } from "@/components/ui";
 import { Search, Plus, UserCog, RefreshCw, Eye, Edit, X, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ROLE_LABELS } from "@/constants";
+import { ROLE_LABELS, DEFAULT_STAFF } from "@/constants";
 import { toast } from "sonner";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,13 +46,22 @@ export default function StaffPage() {
   async function fetchStaff() {
     setLoading(true);
     const supabase = createClient() as any;
-    const { data } = await supabase
-      .from("profiles")
-      .select("*")
-      .not("role", "eq", "guest")
-      .order("role", { ascending: true });
-    setStaff(data ?? []);
-    setLoading(false);
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .not("role", "eq", "guest")
+        .order("role", { ascending: true });
+      if (data && data.length > 0) {
+        setStaff(data);
+      } else {
+        setStaff(DEFAULT_STAFF);
+      }
+    } catch {
+      setStaff(DEFAULT_STAFF);
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { fetchStaff(); }, []);

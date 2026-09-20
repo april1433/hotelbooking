@@ -7,6 +7,7 @@ import { Search, Plus, CalendarDays, Download, Eye, RefreshCw, ChevronLeft, Chev
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { DEFAULT_RESERVATIONS, DEFAULT_HOTEL, DEFAULT_ROOM_TYPES, DEFAULT_ROOMS } from "@/constants";
 
 const STATUS_OPTIONS = ["all", "pending", "confirmed", "checked_in", "checked_out", "cancelled", "no_show"];
 
@@ -62,9 +63,14 @@ export default function ReservationsPage() {
           rooms(room_number, room_types(name))
         `)
         .order("created_at", { ascending: false });
-      setReservations(data ?? []);
+      if (data && data.length > 0) {
+        setReservations(data);
+      } else {
+        setReservations(DEFAULT_RESERVATIONS);
+      }
     } catch (err) {
       console.error("Error fetching reservations:", err);
+      setReservations(DEFAULT_RESERVATIONS);
     } finally {
       setLoading(false);
     }
@@ -75,12 +81,19 @@ export default function ReservationsPage() {
     const supabase = createClient() as any;
     try {
       const { data: hotelData } = await supabase.from("hotels").select("id, name").eq("is_active", true);
-      setHotels(hotelData ?? []);
-      if (hotelData && hotelData.length > 0) {
-        setSelectedHotelId(hotelData[0].id);
-      }
+      setHotels((hotelData && hotelData.length > 0) ? hotelData : [DEFAULT_HOTEL]);
+      setSelectedHotelId(hotelData?.[0]?.id || DEFAULT_HOTEL.id);
+
+      const { data: rtData } = await supabase.from("room_types").select("id, name, hotel_id").eq("is_active", true);
+      setRoomTypes((rtData && rtData.length > 0) ? rtData : DEFAULT_ROOM_TYPES);
+
+      const { data: rData } = await supabase.from("rooms").select("id, room_number, hotel_id, room_type_id, status").eq("is_active", true);
+      setRooms((rData && rData.length > 0) ? rData : DEFAULT_ROOMS);
     } catch (err) {
       console.error("Failed to load metadata list:", err);
+      setHotels([DEFAULT_HOTEL]);
+      setRoomTypes(DEFAULT_ROOM_TYPES);
+      setRooms(DEFAULT_ROOMS);
     }
   }
 

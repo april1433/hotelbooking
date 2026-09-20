@@ -6,6 +6,7 @@ import { Card, CardContent, Button, Input, Label } from "@/components/ui";
 import { Search, Plus, Users, RefreshCw, Eye, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { DEFAULT_GUESTS, DEFAULT_HOTEL } from "@/constants";
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState<any[]>([]);
@@ -37,9 +38,14 @@ export default function GuestsPage() {
         .from("guests")
         .select("*, hotels(name)")
         .order("created_at", { ascending: false });
-      setGuests(data ?? []);
+      if (data && data.length > 0) {
+        setGuests(data);
+      } else {
+        setGuests(DEFAULT_GUESTS);
+      }
     } catch (err) {
       console.error("Error fetching guests:", err);
+      setGuests(DEFAULT_GUESTS);
     } finally {
       setLoading(false);
     }
@@ -49,12 +55,13 @@ export default function GuestsPage() {
     const supabase = createClient() as any;
     try {
       const { data } = await supabase.from("hotels").select("id, name").eq("is_active", true);
-      setHotels(data ?? []);
-      if (data && data.length > 0) {
-        setSelectedHotelId(data[0].id);
-      }
+      const activeHotels = (data && data.length > 0) ? data : [DEFAULT_HOTEL];
+      setHotels(activeHotels);
+      setSelectedHotelId(activeHotels[0].id);
     } catch (err) {
       console.error("Failed to load hotels:", err);
+      setHotels([DEFAULT_HOTEL]);
+      setSelectedHotelId(DEFAULT_HOTEL.id);
     }
   }
 

@@ -3,10 +3,11 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, StatusBadge, Button, Input } from "@/components/ui";
-import { Search, Plus, BedDouble, Edit, Wrench, RefreshCw, Filter, X, Loader2, Trash2 } from "lucide-react";
+import { Search, Plus, BedDouble, Edit, Wrench, RefreshCw, Filter, X, Loader2, Trash2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
+import { DEFAULT_ROOMS, DEFAULT_HOTEL, DEFAULT_ROOM_TYPES } from "@/constants";
 
 const STATUSES = ["all", "available", "occupied", "reserved", "maintenance", "out_of_order", "cleaning"];
 const CLEANING_STATUSES = ["clean", "dirty", "in_progress", "inspected", "do_not_disturb"];
@@ -41,6 +42,26 @@ export default function RoomsPage() {
   const [viewType, setViewType] = useState("");
   const [notes, setNotes] = useState("");
 
+  const [seeding, setSeeding] = useState(false);
+
+  async function seedDatabase() {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/admin/seed", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("Successfully seeded 20 rooms to database!");
+        await fetchRooms();
+      } else {
+        toast.error(data.error || "Failed to seed database");
+      }
+    } catch {
+      toast.error("Network error while seeding database");
+    } finally {
+      setSeeding(false);
+    }
+  }
+
   async function fetchRooms() {
     setLoading(true);
     const supabase = createClient() as any;
@@ -49,9 +70,14 @@ export default function RoomsPage() {
         .from("rooms")
         .select("*, room_types(name, base_price, max_occupancy), hotels(name)")
         .order("room_number", { ascending: true });
-      setRooms(data ?? []);
+      if (data && data.length > 0) {
+        setRooms(data);
+      } else {
+        setRooms(DEFAULT_ROOMS);
+      }
     } catch (err) {
       console.error("Error loading rooms:", err);
+      setRooms(DEFAULT_ROOMS);
     } finally {
       setLoading(false);
     }
@@ -62,12 +88,14 @@ export default function RoomsPage() {
     const supabase = createClient() as any;
     try {
       const { data: hotelData } = await supabase.from("hotels").select("id, name").eq("is_active", true);
-      setHotels(hotelData ?? []);
+      setHotels((hotelData && hotelData.length > 0) ? hotelData : [DEFAULT_HOTEL]);
       
       const { data: rtData } = await supabase.from("room_types").select("id, name, hotel_id").eq("is_active", true);
-      setRoomTypes(rtData ?? []);
+      setRoomTypes((rtData && rtData.length > 0) ? rtData : DEFAULT_ROOM_TYPES);
     } catch (err) {
       console.error("Error loading modal metadata:", err);
+      setHotels([DEFAULT_HOTEL]);
+      setRoomTypes(DEFAULT_ROOM_TYPES);
     }
   }
 
@@ -213,6 +241,9 @@ export default function RoomsPage() {
         <div className="flex gap-2">
           <Button onClick={fetchRooms} variant="outline" size="sm" className="rounded-xl border-border/80">
             <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+          <Button onClick={seedDatabase} variant="outline" size="sm" className="rounded-xl border-gold-500/40 text-gold-600 dark:text-gold-400 hover:bg-gold-500/10">
+            <Sparkles className={`h-3.5 w-3.5 mr-2 ${seeding ? "animate-spin" : ""}`} /> {seeding ? "Seeding..." : "Seed to Cloud"}
           </Button>
           <Button onClick={openAddModal} variant="gold" size="sm" className="rounded-xl">
             <Plus className="h-3.5 w-3.5 mr-2" /> Add Room

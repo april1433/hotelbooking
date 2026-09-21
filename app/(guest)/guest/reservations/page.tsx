@@ -18,6 +18,9 @@ export default function GuestReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [cancellingRes, setCancellingRes] = useState<Reservation | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   async function fetchReservations() {
     if (!user) return;
@@ -74,6 +77,33 @@ export default function GuestReservationsPage() {
       setReservations([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleConfirmCancel() {
+    if (!cancellingRes) return;
+    setCancelLoading(true);
+    try {
+      const res = await fetch("/api/booking/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reservationId: cancellingRes.id,
+          reason: cancelReason,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to cancel reservation.");
+      }
+      toast.success("Reservation cancelled successfully.");
+      setCancellingRes(null);
+      setCancelReason("");
+      fetchReservations();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel reservation.");
+    } finally {
+      setCancelLoading(false);
     }
   }
 
@@ -215,12 +245,23 @@ export default function GuestReservationsPage() {
                     <div>Total Cost: <span className="text-gold-600 font-bold">{formatCurrency(r.total_amount ?? 0)}</span></div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 pt-3 border-t border-border/40 mt-4">
+                <div className="flex items-center justify-between pt-3 border-t border-border/40 mt-4">
                   <Link href={`/guest/invoices?reservationId=${r.id}`}>
                     <Button variant="outline" size="sm" className="rounded-lg text-xs h-8 gap-1.5">
                       <Eye className="h-3 w-3" /> View Invoice
                     </Button>
                   </Link>
+
+                  {["pending", "confirmed"].includes(r.status) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCancellingRes(r)}
+                      className="rounded-lg text-xs h-8 gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900/50"
+                    >
+                      <XCircle className="h-3.5 w-3.5" /> Cancel Booking
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -231,6 +272,67 @@ export default function GuestReservationsPage() {
               No reservations found.
             </div>
           )}
+        </div>
+      )}
+
+      {/* Cancellation Confirmation Modal */}
+      {cancellingRes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-charcoal-900 border border-border/40 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+                <XCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold font-display">Cancel Reservation</h3>
+                <p className="text-xs text-muted-foreground">
+                  Confirmation: <span className="font-mono font-semibold text-foreground">{cancellingRes.confirmation_number ?? cancellingRes.id.slice(0, 8)}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl p-3.5 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+              <p className="font-semibold">Are you sure you want to cancel this booking?</p>
+              <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                {cancellingRes.room_types?.name ?? "Room"} &bull; {cancellingRes.check_in_date} to {cancellingRes.check_out_date}
+              </p>
+              <p className="text-[11px] opacity-80 pt-1">
+                Your room allocation will be released. Once cancelled, this action cannot be undone.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Reason for cancellation (optional)</label>
+              <input
+                type="text"
+                placeholder="e.g., Change of travel dates, personal emergency"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full h-9 rounded-xl border border-input bg-background px-3 text-xs focus:outline-none focus:ring-2 focus:ring-red-500/20"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 rounded-xl"
+                onClick={() => { setCancellingRes(null); setCancelReason(""); }}
+                disabled={cancelLoading}
+              >
+                Keep Booking
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 text-white border-transparent"
+                onClick={handleConfirmCancel}
+                loading={cancelLoading}
+              >
+                Yes, Cancel Booking
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

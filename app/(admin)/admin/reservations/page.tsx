@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, StatusBadge, Button, Input, Label } from "@/components/ui";
-import { Search, Plus, CalendarDays, Download, Eye, RefreshCw, ChevronLeft, ChevronRight, X, Loader2, User, BedDouble } from "lucide-react";
+import { Search, Plus, CalendarDays, Download, Eye, RefreshCw, ChevronLeft, ChevronRight, X, Loader2, User, BedDouble, XCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -72,6 +72,25 @@ export default function ReservationsPage() {
       setReservations([]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAdminCancel(r: any) {
+    if (!window.confirm(`Are you sure you want to cancel reservation ${r.confirmation_number ?? r.id.slice(0, 8)} for ${r.guests?.first_name} ${r.guests?.last_name}?`)) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/booking/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reservationId: r.id, reason: "Cancelled by hotel administrator" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to cancel reservation");
+      toast.success(`Reservation ${r.confirmation_number ?? r.id.slice(0, 8)} cancelled.`);
+      fetchReservations();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to cancel reservation");
     }
   }
 
@@ -509,10 +528,23 @@ export default function ReservationsPage() {
                       <td className="px-4 py-3.5"><StatusBadge status={r.status} /></td>
                       <td className="px-4 py-3.5 text-right text-sm font-semibold text-gold-600">{formatCurrency(r.total_amount ?? 0)}</td>
                       <td className="px-4 py-3.5">
-                        <div className="flex items-center justify-center gap-2">
-                          <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => toast.info(`Viewing details for ${r.confirmation_number ?? r.id.slice(0, 8)}`)}
+                            title="View Details"
+                            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
+                          {!["cancelled", "checked_out"].includes(r.status) && (
+                            <button
+                              onClick={() => handleAdminCancel(r)}
+                              title="Cancel Reservation"
+                              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-500 hover:text-red-600 transition-colors"
+                            >
+                              <XCircle className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

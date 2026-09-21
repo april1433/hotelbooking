@@ -183,12 +183,16 @@ export async function getLocalDb(): Promise<PGlite> {
         }
       }
 
-      // 3. Seed initial database data if profiles is empty
+      // 3. Seed initial database data if profiles is empty or hotels count < 6
+      const checkHotels = await db.query<{ count: string }>("SELECT count(*) FROM hotels;");
+      const hotelCount = parseInt(checkHotels.rows[0]?.count ?? "0", 10);
       const checkProfiles = await db.query<{ count: string }>("SELECT count(*) FROM profiles;");
-      if (parseInt(checkProfiles.rows[0]?.count ?? "0", 10) === 0) {
-        console.log("⚡ [Local DB] Seeding initial hotel data...");
+      const profileCount = parseInt(checkProfiles.rows[0]?.count ?? "0", 10);
+
+      if (hotelCount < 6 || profileCount === 0) {
+        console.log(`⚡ [Local DB] Seeding/Updating hotel data (hotels: ${hotelCount}, profiles: ${profileCount})...`);
         await seedDatabase(db);
-        console.log("✅ [Local DB] Seed data inserted.");
+        console.log("✅ [Local DB] Seed data inserted/updated.");
       }
 
       globalDb = db;

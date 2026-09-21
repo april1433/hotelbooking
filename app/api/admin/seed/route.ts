@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { DEFAULT_HOTEL, DEFAULT_ROOM_TYPES, DEFAULT_ROOMS, DEFAULT_STAFF, DEFAULT_GUESTS, DEFAULT_RESERVATIONS } from "@/constants";
+import { DEFAULT_HOTEL, DEFAULT_HOTELS, DEFAULT_ROOM_TYPES, DEFAULT_ROOMS, DEFAULT_STAFF } from "@/constants";
 
 export async function POST() {
   try {
@@ -18,18 +18,16 @@ export async function POST() {
       cookies: { getAll() { return []; }, setAll() {} },
     }) as any;
 
-    // 1. Hotel
-    const { error: hotelErr } = await supabase.from("hotels").upsert({
-      id: DEFAULT_HOTEL.id,
-      name: "Grand Azure Hotel & Resort",
-      slug: "grand-azure-hotel",
-      address: "123 Seaside Boulevard, Resort Zone",
-      city: "Boracay",
-      country: "Philippines",
-      phone: "+63 36 288 1234",
-      email: "info@grandazure.com",
+    // 1. Hotels (all branches)
+    const hotelsToUpsert = DEFAULT_HOTELS.map(h => ({
+      id: h.id,
+      name: h.name,
+      slug: h.name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      city: h.city,
+      country: h.country,
       is_active: true,
-    }, { onConflict: "id" });
+    }));
+    const { error: hotelErr } = await supabase.from("hotels").upsert(hotelsToUpsert, { onConflict: "id" });
     if (hotelErr) throw new Error(`Hotels upsert failed: ${hotelErr.message}`);
 
     // 2. Room Types
@@ -83,7 +81,7 @@ export async function POST() {
       success: true,
       message: "Database seeded successfully with clean rooms and admin staff",
       seeded: {
-        hotel: 1,
+        hotels: DEFAULT_HOTELS.length,
         roomTypes: cleanRoomTypes.length,
         rooms: cleanRooms.length,
         staff: cleanStaff.length,

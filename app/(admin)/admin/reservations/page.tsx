@@ -7,7 +7,7 @@ import { Search, Plus, CalendarDays, Download, Eye, RefreshCw, ChevronLeft, Chev
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { DEFAULT_RESERVATIONS, DEFAULT_HOTEL, DEFAULT_ROOM_TYPES, DEFAULT_ROOMS } from "@/constants";
+import { DEFAULT_RESERVATIONS, DEFAULT_HOTELS, DEFAULT_ROOM_TYPES, DEFAULT_ROOMS } from "@/constants";
 
 const STATUS_OPTIONS = ["all", "pending", "confirmed", "checked_in", "checked_out", "cancelled", "no_show"];
 
@@ -80,8 +80,8 @@ export default function ReservationsPage() {
     const supabase = createClient() as any;
     try {
       const { data: hotelData } = await supabase.from("hotels").select("id, name").eq("is_active", true);
-      setHotels((hotelData && hotelData.length > 0) ? hotelData : [DEFAULT_HOTEL]);
-      setSelectedHotelId(hotelData?.[0]?.id || DEFAULT_HOTEL.id);
+      setHotels((hotelData && hotelData.length > 0) ? hotelData : DEFAULT_HOTELS);
+      setSelectedHotelId(hotelData?.[0]?.id || DEFAULT_HOTELS[0].id);
 
       const { data: rtData } = await supabase.from("room_types").select("id, name, hotel_id").eq("is_active", true);
       setRoomTypes((rtData && rtData.length > 0) ? rtData : DEFAULT_ROOM_TYPES);
@@ -90,7 +90,7 @@ export default function ReservationsPage() {
       setRooms((rData && rData.length > 0) ? rData : DEFAULT_ROOMS);
     } catch (err) {
       console.error("Failed to load metadata list:", err);
-      setHotels([DEFAULT_HOTEL]);
+      setHotels(DEFAULT_HOTELS);
       setRoomTypes(DEFAULT_ROOM_TYPES);
       setRooms(DEFAULT_ROOMS);
     }

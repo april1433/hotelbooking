@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { CalendarDays, Star, Receipt, Check, User, Loader2, Hotel } from "lucide-react";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { calculateNights, formatCurrency } from "@/lib/utils";
-import { BOOKING_EXTRAS, DEFAULT_HOTEL, DEFAULT_ROOM_TYPES } from "@/constants";
+import { BOOKING_EXTRAS, DEFAULT_HOTELS, DEFAULT_ROOM_TYPES } from "@/constants";
 import { useAuth } from "@/contexts/auth-context";
 import { createClient } from "@/lib/supabase/client";
 
@@ -42,7 +42,7 @@ function BookingForm() {
     async function loadHotels() {
       const supabase = createClient() as any;
       const { data } = await supabase.from("hotels").select("id, name").eq("is_active", true);
-      const list = (data && data.length > 0) ? data : [DEFAULT_HOTEL];
+      const list = (data && data.length > 0) ? data : DEFAULT_HOTELS;
       setHotels(list);
 
       // Read initial hotelId from URL
@@ -481,7 +481,7 @@ function BookingForm() {
 
             <div className="pt-6">
               <Button variant="gold" size="lg" className="w-full rounded-xl font-semibold" loading={loading}>
-                Confirm & Go to Payment
+                {paymentMethod === "walkin" ? "Confirm Reservation (Pay at Hotel)" : "Proceed to GCash Payment"}
               </Button>
             </div>
           </CardContent>

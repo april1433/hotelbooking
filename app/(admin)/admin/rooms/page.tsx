@@ -7,7 +7,7 @@ import { Search, Plus, BedDouble, Edit, Wrench, RefreshCw, Filter, X, Loader2, T
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
-import { DEFAULT_ROOMS, DEFAULT_HOTEL, DEFAULT_ROOM_TYPES } from "@/constants";
+import { DEFAULT_ROOMS, DEFAULT_HOTELS, DEFAULT_ROOM_TYPES } from "@/constants";
 
 const STATUSES = ["all", "available", "occupied", "reserved", "maintenance", "out_of_order", "cleaning"];
 const CLEANING_STATUSES = ["clean", "dirty", "in_progress", "inspected", "do_not_disturb"];
@@ -88,13 +88,13 @@ export default function RoomsPage() {
     const supabase = createClient() as any;
     try {
       const { data: hotelData } = await supabase.from("hotels").select("id, name").eq("is_active", true);
-      setHotels((hotelData && hotelData.length > 0) ? hotelData : [DEFAULT_HOTEL]);
+      setHotels((hotelData && hotelData.length > 0) ? hotelData : DEFAULT_HOTELS);
       
       const { data: rtData } = await supabase.from("room_types").select("id, name, hotel_id").eq("is_active", true);
       setRoomTypes((rtData && rtData.length > 0) ? rtData : DEFAULT_ROOM_TYPES);
     } catch (err) {
       console.error("Error loading modal metadata:", err);
-      setHotels([DEFAULT_HOTEL]);
+      setHotels(DEFAULT_HOTELS);
       setRoomTypes(DEFAULT_ROOM_TYPES);
     }
   }

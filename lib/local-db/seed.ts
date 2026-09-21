@@ -5,6 +5,7 @@ export const HOTEL_ID2 = "11111111-0000-0000-0000-000000000002";
 export const HOTEL_ID3 = "11111111-0000-0000-0000-000000000003";
 export const HOTEL_ID4 = "11111111-0000-0000-0000-000000000004";
 export const HOTEL_ID5 = "11111111-0000-0000-0000-000000000005";
+export const HOTEL_ID6 = "11111111-0000-0000-0000-000000000006";
 export const ADMIN_UUID = "28537215-8bb7-49b9-85d0-2abeeafdbe6e";
 
 export async function seedDatabase(db: PGlite) {
@@ -21,14 +22,22 @@ export async function seedDatabase(db: PGlite) {
     },
     {
       id: HOTEL_ID2,
-      name: "Pilgrims Bay Plaza",
-      slug: "pilgrims-bay-plaza",
-      address: "45 Pilgrims Road, Bay District",
+      name: "Pilgrims Hotel",
+      slug: "pilgrims-hotel",
+      address: "45 Pilgrims Road, Uptown",
       city: "Cebu", country: "Philippines",
-      phone: "+63 32 234 5678", email: "info@pilgrimsbay.com",
+      phone: "+63 32 234 5678", email: "info@pilgrimshotel.com",
     },
     {
       id: HOTEL_ID3,
+      name: "Bay Plaza Hotel",
+      slug: "bay-plaza-hotel",
+      address: "88 Bay Boulevard, Coastal District",
+      city: "Subic", country: "Philippines",
+      phone: "+63 47 252 8888", email: "info@bayplazahotel.com",
+    },
+    {
+      id: HOTEL_ID4,
       name: "Mardale Hotel",
       slug: "mardale-hotel",
       address: "78 Mardale Avenue, City Center",
@@ -36,7 +45,7 @@ export async function seedDatabase(db: PGlite) {
       phone: "+63 82 345 6789", email: "info@mardale.com",
     },
     {
-      id: HOTEL_ID4,
+      id: HOTEL_ID5,
       name: "GV Hotel",
       slug: "gv-hotel",
       address: "12 General Venue Street",
@@ -44,7 +53,7 @@ export async function seedDatabase(db: PGlite) {
       phone: "+63 33 456 7890", email: "info@gvhotel.com",
     },
     {
-      id: HOTEL_ID5,
+      id: HOTEL_ID6,
       name: "Lex Hotel",
       slug: "lex-hotel",
       address: "56 Lexington Drive, Business District",
@@ -57,7 +66,7 @@ export async function seedDatabase(db: PGlite) {
     await db.query(
       `INSERT INTO hotels (id, name, slug, address, city, country, phone, email, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-       ON CONFLICT (id) DO NOTHING;`,
+       ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, slug = EXCLUDED.slug, city = EXCLUDED.city;`,
       [h.id, h.name, h.slug, h.address, h.city, h.country, h.phone, h.email]
     );
   }
@@ -103,29 +112,28 @@ export async function seedDatabase(db: PGlite) {
     { id: "a4444444-4444-4444-4444-444444444444", hotelId: HOTEL_ID,  name: "Standard Twin",          slug: "standard-twin",          desc: "Comfortable twin room ideal for friends or small families.",                    price: 4500,  max: 2, bed: "Twin" },
     { id: "a5555555-5555-5555-5555-555555555555", hotelId: HOTEL_ID,  name: "Presidential Penthouse", slug: "presidential-penthouse", desc: "Top-floor penthouse with 360 ocean view, jacuzzi, butler service, and private lounge.", price: 32000, max: 6, bed: "Super King" },
     { id: "a6666666-6666-6666-6666-666666666666", hotelId: HOTEL_ID,  name: "Garden Bungalow",         slug: "garden-bungalow",         desc: "Tranquil tropical bungalow surrounded by flora with open-air rainfall shower.",  price: 9800,  max: 3, bed: "Queen" },
-    // Pilgrims Bay Plaza
-    { id: "b1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID2, name: "Bay View Suite",          slug: "pbp-bay-view-suite",      desc: "Stunning bay-facing suite with private terrace and sunset panorama.",          price: 7500,  max: 3, bed: "King" },
-    { id: "b2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID2, name: "Superior Room",           slug: "pbp-superior-room",       desc: "Well-appointed superior room with modern amenities and city views.",           price: 4200,  max: 2, bed: "Queen" },
-    { id: "b3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID2, name: "Family Suite",            slug: "pbp-family-suite",       desc: "Spacious suite designed for families with two bedrooms and a living area.",    price: 9500,  max: 5, bed: "Twin" },
+    // Pilgrims Hotel
+    { id: "b1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID2, name: "Pilgrims Deluxe Room",    slug: "pilgrims-deluxe-room",    desc: "Comfortable and elegant deluxe room with modern amenities.",                   price: 3500,  max: 2, bed: "Queen" },
+    { id: "b2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID2, name: "Pilgrims Superior Suite", slug: "pilgrims-superior-suite", desc: "Spacious suite with city views and premium lounge comfort.",              price: 5200,  max: 3, bed: "King" },
+    // Bay Plaza Hotel
+    { id: "bb111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID3, name: "Bay View Suite",          slug: "bay-view-suite",          desc: "Stunning bay-facing suite with private balcony and sunset panorama.",          price: 7500,  max: 3, bed: "King" },
+    { id: "bb222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID3, name: "Plaza Executive Room",   slug: "plaza-executive-room",   desc: "Modern executive room tailored for business and relaxation.",                 price: 4600,  max: 2, bed: "Queen" },
     // Mardale Hotel
-    { id: "c1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID3, name: "Deluxe Room",             slug: "mar-deluxe-room",        desc: "Elegantly furnished deluxe room in the heart of the city.",                   price: 3800,  max: 2, bed: "King" },
-    { id: "c2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID3, name: "Executive Suite",         slug: "mar-executive-suite",    desc: "Premium executive suite with dedicated work area and lounge.",               price: 6800,  max: 3, bed: "King" },
-    { id: "c3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID3, name: "Standard Room",           slug: "mar-standard-room",      desc: "Comfortable standard room perfect for business or leisure travelers.",        price: 2500,  max: 2, bed: "Twin" },
+    { id: "c1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID4, name: "Mardale Deluxe Room",     slug: "mardale-deluxe-room",     desc: "Elegantly furnished deluxe room in the heart of the city.",                   price: 3800,  max: 2, bed: "King" },
+    { id: "c2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID4, name: "Mardale Executive Suite", slug: "mardale-executive-suite", desc: "Premium executive suite with dedicated work area and lounge.",               price: 6800,  max: 3, bed: "King" },
     // GV Hotel
-    { id: "d1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID4, name: "Deluxe Double",           slug: "gv-deluxe-double",       desc: "Clean and comfortable deluxe double room with modern furnishings.",           price: 2800,  max: 2, bed: "Queen" },
-    { id: "d2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID4, name: "Superior Twin",           slug: "gv-superior-twin",       desc: "Bright superior twin room ideal for two guests.",                            price: 2200,  max: 2, bed: "Twin" },
-    { id: "d3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID4, name: "Family Room",             slug: "gv-family-room",         desc: "Spacious family room with extra beds and child-friendly amenities.",         price: 3500,  max: 4, bed: "Twin" },
+    { id: "d1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID5, name: "GV Deluxe Double",       slug: "gv-deluxe-double",       desc: "Clean and comfortable deluxe double room with modern furnishings.",           price: 2800,  max: 2, bed: "Queen" },
+    { id: "d2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID5, name: "GV Family Room",         slug: "gv-family-room",         desc: "Spacious family room with extra beds and child-friendly amenities.",         price: 3500,  max: 4, bed: "Twin" },
     // Lex Hotel
-    { id: "e1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID5, name: "Classic Room",            slug: "lex-classic-room",       desc: "Timeless classic room with refined interiors and all essentials.",           price: 3200,  max: 2, bed: "Queen" },
-    { id: "e2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID5, name: "Junior Suite",            slug: "lex-junior-suite",       desc: "Comfortable junior suite with separate seating area.",                       price: 5500,  max: 3, bed: "King" },
-    { id: "e3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID5, name: "Business Suite",          slug: "lex-business-suite",     desc: "Premium suite tailored for business travelers with high-speed internet.",   price: 7200,  max: 2, bed: "King" },
+    { id: "e1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID6, name: "Lex Classic Room",        slug: "lex-classic-room",       desc: "Timeless classic room with refined interiors and all essentials.",           price: 3200,  max: 2, bed: "Queen" },
+    { id: "e2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID6, name: "Lex Junior Suite",        slug: "lex-junior-suite",       desc: "Comfortable junior suite with separate seating area.",                       price: 5500,  max: 3, bed: "King" },
   ];
 
   for (const rt of roomTypes) {
     await db.query(
       `INSERT INTO room_types (id, hotel_id, name, slug, description, max_occupancy, base_price, bed_type, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-       ON CONFLICT (id) DO NOTHING;`,
+       ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, base_price = EXCLUDED.base_price;`,
       [rt.id, rt.hotelId, rt.name, rt.slug, rt.desc, rt.max, rt.price, rt.bed]
     );
   }
@@ -135,7 +143,7 @@ export async function seedDatabase(db: PGlite) {
 
   // Room type ID references by index position in roomTypes array
   const allRoomsData = [
-    // Grand Azure Hotel (roomTypes[0..5])
+    // Grand Azure Hotel
     { hotel: HOTEL_ID, number: "101", type_id: "a1111111-1111-1111-1111-111111111111", floor: 1 },
     { hotel: HOTEL_ID, number: "102", type_id: "a1111111-1111-1111-1111-111111111111", floor: 1 },
     { hotel: HOTEL_ID, number: "103", type_id: "a3333333-3333-3333-3333-333333333333", floor: 1 },
@@ -156,32 +164,26 @@ export async function seedDatabase(db: PGlite) {
     { hotel: HOTEL_ID, number: "403", type_id: "a4444444-4444-4444-4444-444444444444", floor: 4 },
     { hotel: HOTEL_ID, number: "501", type_id: "a5555555-5555-5555-5555-555555555555", floor: 5 },
     { hotel: HOTEL_ID, number: "502", type_id: "a2222222-2222-2222-2222-222222222222", floor: 5 },
-    // Pilgrims Bay Plaza
+    // Pilgrims Hotel
     { hotel: HOTEL_ID2, number: "101", type_id: "b1111111-1111-1111-1111-111111111111", floor: 1 },
-    { hotel: HOTEL_ID2, number: "102", type_id: "b2222222-2222-2222-2222-222222222222", floor: 1 },
-    { hotel: HOTEL_ID2, number: "103", type_id: "b2222222-2222-2222-2222-222222222222", floor: 1 },
-    { hotel: HOTEL_ID2, number: "201", type_id: "b1111111-1111-1111-1111-111111111111", floor: 2 },
-    { hotel: HOTEL_ID2, number: "202", type_id: "b3333333-3333-3333-3333-333333333333", floor: 2 },
-    { hotel: HOTEL_ID2, number: "301", type_id: "b3333333-3333-3333-3333-333333333333", floor: 3 },
-    { hotel: HOTEL_ID2, number: "302", type_id: "b1111111-1111-1111-1111-111111111111", floor: 3 },
+    { hotel: HOTEL_ID2, number: "102", type_id: "b1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID2, number: "201", type_id: "b2222222-2222-2222-2222-222222222222", floor: 2 },
+    // Bay Plaza Hotel
+    { hotel: HOTEL_ID3, number: "101", type_id: "bb111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID3, number: "102", type_id: "bb222222-2222-2222-2222-222222222222", floor: 1 },
+    { hotel: HOTEL_ID3, number: "201", type_id: "bb111111-1111-1111-1111-111111111111", floor: 2 },
     // Mardale Hotel
-    { hotel: HOTEL_ID3, number: "101", type_id: "c1111111-1111-1111-1111-111111111111", floor: 1 },
-    { hotel: HOTEL_ID3, number: "102", type_id: "c3333333-3333-3333-3333-333333333333", floor: 1 },
-    { hotel: HOTEL_ID3, number: "103", type_id: "c3333333-3333-3333-3333-333333333333", floor: 1 },
-    { hotel: HOTEL_ID3, number: "201", type_id: "c2222222-2222-2222-2222-222222222222", floor: 2 },
-    { hotel: HOTEL_ID3, number: "202", type_id: "c1111111-1111-1111-1111-111111111111", floor: 2 },
+    { hotel: HOTEL_ID4, number: "101", type_id: "c1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID4, number: "102", type_id: "c1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID4, number: "201", type_id: "c2222222-2222-2222-2222-222222222222", floor: 2 },
     // GV Hotel
-    { hotel: HOTEL_ID4, number: "101", type_id: "d1111111-1111-1111-1111-111111111111", floor: 1 },
-    { hotel: HOTEL_ID4, number: "102", type_id: "d2222222-2222-2222-2222-222222222222", floor: 1 },
-    { hotel: HOTEL_ID4, number: "103", type_id: "d2222222-2222-2222-2222-222222222222", floor: 1 },
-    { hotel: HOTEL_ID4, number: "201", type_id: "d3333333-3333-3333-3333-333333333333", floor: 2 },
-    { hotel: HOTEL_ID4, number: "202", type_id: "d1111111-1111-1111-1111-111111111111", floor: 2 },
+    { hotel: HOTEL_ID5, number: "101", type_id: "d1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID5, number: "102", type_id: "d1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID5, number: "201", type_id: "d2222222-2222-2222-2222-222222222222", floor: 2 },
     // Lex Hotel
-    { hotel: HOTEL_ID5, number: "101", type_id: "e1111111-1111-1111-1111-111111111111", floor: 1 },
-    { hotel: HOTEL_ID5, number: "102", type_id: "e1111111-1111-1111-1111-111111111111", floor: 1 },
-    { hotel: HOTEL_ID5, number: "201", type_id: "e2222222-2222-2222-2222-222222222222", floor: 2 },
-    { hotel: HOTEL_ID5, number: "202", type_id: "e3333333-3333-3333-3333-333333333333", floor: 2 },
-    { hotel: HOTEL_ID5, number: "301", type_id: "e3333333-3333-3333-3333-333333333333", floor: 3 },
+    { hotel: HOTEL_ID6, number: "101", type_id: "e1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID6, number: "102", type_id: "e1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID6, number: "201", type_id: "e2222222-2222-2222-2222-222222222222", floor: 2 },
   ];
 
   const roomIdsMap: Record<string, string> = {};
@@ -201,31 +203,6 @@ export async function seedDatabase(db: PGlite) {
 
   // ── 4. (No sample guests/reservations — hotel starts fresh) ────────────
   console.log("✅ Skipping sample guests/reservations — hotel starts fresh.");
-  // Placeholder so references below still compile:
-  const sampleGuests: never[] = [
-    { first: "Sofia", last: "Garcia", email: "sofia.garcia@gmail.com", phone: "+63 917 111 2233", room: "102", status: "checked_in", total: 17000, daysAgo: 1, stayDays: 3 },
-    { first: "Kenji", last: "Tanaka", email: "kenji.tanaka@tokyo.jp", phone: "+81 90 1234 5678", room: "201", status: "checked_in", total: 45000, daysAgo: 2, stayDays: 5 },
-    { first: "Chloe", last: "Dupont", email: "chloe.dupont@paris.fr", phone: "+33 6 12 34 56 78", room: "303", status: "checked_in", total: 29400, daysAgo: 1, stayDays: 4 },
-    { first: "Alexander", last: "Wright", email: "alex.wright@london.uk", phone: "+44 7700 900077", room: "305", status: "checked_in", total: 96000, daysAgo: 3, stayDays: 6 },
-    { first: "Sarah", last: "Jenkins", email: "s.jenkins@sydney.au", phone: "+61 400 123 456", room: "502", status: "checked_in", total: 30000, daysAgo: 1, stayDays: 3 },
-    { first: "Liam", last: "O'Connor", email: "liam.oc@dublin.ie", phone: "+353 87 123 4567", room: "104", status: "confirmed", total: 9000, daysAgo: -1, stayDays: 2 },
-    { first: "Hans", last: "Mueller", email: "hans.m@berlin.de", phone: "+49 151 12345678", room: "302", status: "confirmed", total: 45000, daysAgo: -2, stayDays: 4 },
-    { first: "Grace", last: "Lim", email: "grace.lim@singapore.sg", phone: "+65 9123 4567", room: "402", status: "confirmed", total: 25500, daysAgo: -3, stayDays: 3 },
-    { first: "Marco", last: "Rossi", email: "marco.rossi@milan.it", phone: "+39 333 1234567", room: "101", status: "pending", total: 17000, daysAgo: -5, stayDays: 2 },
-    { first: "David", last: "Miller", email: "david.miller@ny.us", phone: "+1 212 555 0198", room: "103", status: "checked_out", total: 18600, daysAgo: 5, stayDays: 3 },
-    { first: "Emma", last: "Watson", email: "emma.watson@oxford.uk", phone: "+44 7911 123456", room: "202", status: "checked_out", total: 45000, daysAgo: 7, stayDays: 4 },
-    { first: "Carlos", last: "Alvarez", email: "carlos.a@madrid.es", phone: "+34 612 345 678", room: "204", status: "checked_out", total: 12400, daysAgo: 10, stayDays: 2 },
-    { first: "Aisha", last: "Al-Mansoor", email: "aisha@dubai.ae", phone: "+971 50 123 4567", room: "501", status: "confirmed", total: 128000, daysAgo: -4, stayDays: 4 },
-    { first: "Gabriel", last: "Silva", email: "gabriel.silva@rio.br", phone: "+55 21 99999 8888", room: "304", status: "pending", total: 19600, daysAgo: -2, stayDays: 2 },
-    { first: "Hannah", last: "Schmidt", email: "h.schmidt@vienna.at", phone: "+43 664 1234567", room: "205", status: "cancelled", total: 9000, daysAgo: 3, stayDays: 2 },
-    { first: "Viktor", last: "Petrov", email: "viktor.p@moscow.ru", phone: "+7 916 123 4567", room: "401", status: "confirmed", total: 18600, daysAgo: -6, stayDays: 3 },
-    { first: "Mei-Ling", last: "Chen", email: "meiling.chen@taipei.tw", phone: "+886 912 345 678", room: "301", status: "confirmed", total: 25500, daysAgo: -7, stayDays: 3 },
-    { first: "Lucas", last: "Van Der Berg", email: "lucas.vdb@amsterdam.nl", phone: "+31 6 12345678", room: "105", status: "cancelled", total: 13500, daysAgo: 4, stayDays: 3 },
-    { first: "Olivia", last: "Brown", email: "olivia.brown@toronto.ca", phone: "+1 416 555 0147", room: "203", status: "checked_out", total: 18600, daysAgo: 8, stayDays: 3 },
-  ];
-
-  // No sample guests or reservations inserted — keeping database clean
-  void sampleGuests;
   void roomIdsMap;
 
   // ── 5. 20 SAMPLE MAINTENANCE TICKETS ──────────────────────────────────

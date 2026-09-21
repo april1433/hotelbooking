@@ -1,25 +1,66 @@
 import type { PGlite } from "@electric-sql/pglite";
 
-export const HOTEL_ID = "11111111-0000-0000-0000-000000000001";
+export const HOTEL_ID  = "11111111-0000-0000-0000-000000000001";
+export const HOTEL_ID2 = "11111111-0000-0000-0000-000000000002";
+export const HOTEL_ID3 = "11111111-0000-0000-0000-000000000003";
+export const HOTEL_ID4 = "11111111-0000-0000-0000-000000000004";
+export const HOTEL_ID5 = "11111111-0000-0000-0000-000000000005";
 export const ADMIN_UUID = "28537215-8bb7-49b9-85d0-2abeeafdbe6e";
 
 export async function seedDatabase(db: PGlite) {
-  console.log("🏨 Seeding Hotel...");
-  await db.query(
-    `INSERT INTO hotels (id, name, slug, address, city, country, phone, email, is_active)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-     ON CONFLICT (id) DO NOTHING;`,
-    [
-      HOTEL_ID,
-      "Grand Azure Hotel & Resort",
-      "grand-azure-hotel",
-      "123 Seaside Boulevard, Resort Zone",
-      "Boracay",
-      "Philippines",
-      "+63 36 288 1234",
-      "info@grandazure.com",
-    ]
-  );
+  console.log("🏨 Seeding Hotels...");
+
+  const hotelsList = [
+    {
+      id: HOTEL_ID,
+      name: "Grand Azure Hotel & Resort",
+      slug: "grand-azure-hotel",
+      address: "123 Seaside Boulevard, Resort Zone",
+      city: "Boracay", country: "Philippines",
+      phone: "+63 36 288 1234", email: "info@grandazure.com",
+    },
+    {
+      id: HOTEL_ID2,
+      name: "Pilgrims Bay Plaza",
+      slug: "pilgrims-bay-plaza",
+      address: "45 Pilgrims Road, Bay District",
+      city: "Cebu", country: "Philippines",
+      phone: "+63 32 234 5678", email: "info@pilgrimsbay.com",
+    },
+    {
+      id: HOTEL_ID3,
+      name: "Mardale Hotel",
+      slug: "mardale-hotel",
+      address: "78 Mardale Avenue, City Center",
+      city: "Davao", country: "Philippines",
+      phone: "+63 82 345 6789", email: "info@mardale.com",
+    },
+    {
+      id: HOTEL_ID4,
+      name: "GV Hotel",
+      slug: "gv-hotel",
+      address: "12 General Venue Street",
+      city: "Iloilo", country: "Philippines",
+      phone: "+63 33 456 7890", email: "info@gvhotel.com",
+    },
+    {
+      id: HOTEL_ID5,
+      name: "Lex Hotel",
+      slug: "lex-hotel",
+      address: "56 Lexington Drive, Business District",
+      city: "Cagayan de Oro", country: "Philippines",
+      phone: "+63 88 567 8901", email: "info@lexhotel.com",
+    },
+  ];
+
+  for (const h of hotelsList) {
+    await db.query(
+      `INSERT INTO hotels (id, name, slug, address, city, country, phone, email, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+       ON CONFLICT (id) DO NOTHING;`,
+      [h.id, h.name, h.slug, h.address, h.city, h.country, h.phone, h.email]
+    );
+  }
 
   // ── 1. AUTH USERS & PROFILES ──────────────────────────────────────────────
   console.log("👤 Seeding System Users & Profiles...");
@@ -51,15 +92,33 @@ export async function seedDatabase(db: PGlite) {
     );
   }
 
-  // ── 2. ROOM TYPES (6 Categories) ──────────────────────────────────────────
-  console.log("🛏️  Seeding Room Types...");
+  // ── 2. ROOM TYPES ──────────────────────────────────────────────────────────
+  console.log("🛏️  Seeding Room Types for all hotels...");
+
+  // Grand Azure Hotel room types
   const roomTypes = [
-    { id: "a1111111-1111-1111-1111-111111111111", name: "Deluxe Suite", slug: "deluxe-suite", desc: "Spacious luxury suite featuring a private balcony and panoramic beach views.", price: 8500, max: 3, bed: "King" },
-    { id: "a2222222-2222-2222-2222-222222222222", name: "Ocean View Villa", slug: "ocean-view-villa", desc: "Exclusive beachfront villa with direct ocean access and private plunge pool.", price: 15000, max: 4, bed: "King" },
-    { id: "a3333333-3333-3333-3333-333333333333", name: "Executive King", slug: "executive-king", desc: "Modern upscale room tailored for executives and couples seeking premium comfort.", price: 6200, max: 2, bed: "King" },
-    { id: "a4444444-4444-4444-4444-444444444444", name: "Standard Twin", slug: "standard-twin", desc: "Comfortable twin room ideal for friends or small families.", price: 4500, max: 2, bed: "Twin" },
-    { id: "a5555555-5555-5555-5555-555555555555", name: "Presidential Penthouse", slug: "presidential-penthouse", desc: "Top-floor penthouse with 360 ocean view, jacuzzi, butler service, and private lounge.", price: 32000, max: 6, bed: "Super King" },
-    { id: "a6666666-6666-6666-6666-666666666666", name: "Garden Bungalow", slug: "garden-bungalow", desc: "Tranquil tropical bungalow surrounded by flora with open-air rainfall shower.", price: 9800, max: 3, bed: "Queen" },
+    { id: "a1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID,  name: "Deluxe Suite",          slug: "deluxe-suite",          desc: "Spacious luxury suite featuring a private balcony and panoramic beach views.", price: 8500,  max: 3, bed: "King" },
+    { id: "a2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID,  name: "Ocean View Villa",       slug: "ocean-view-villa",       desc: "Exclusive beachfront villa with direct ocean access and private plunge pool.",  price: 15000, max: 4, bed: "King" },
+    { id: "a3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID,  name: "Executive King",         slug: "executive-king",         desc: "Modern upscale room tailored for executives and couples seeking premium comfort.", price: 6200, max: 2, bed: "King" },
+    { id: "a4444444-4444-4444-4444-444444444444", hotelId: HOTEL_ID,  name: "Standard Twin",          slug: "standard-twin",          desc: "Comfortable twin room ideal for friends or small families.",                    price: 4500,  max: 2, bed: "Twin" },
+    { id: "a5555555-5555-5555-5555-555555555555", hotelId: HOTEL_ID,  name: "Presidential Penthouse", slug: "presidential-penthouse", desc: "Top-floor penthouse with 360 ocean view, jacuzzi, butler service, and private lounge.", price: 32000, max: 6, bed: "Super King" },
+    { id: "a6666666-6666-6666-6666-666666666666", hotelId: HOTEL_ID,  name: "Garden Bungalow",         slug: "garden-bungalow",         desc: "Tranquil tropical bungalow surrounded by flora with open-air rainfall shower.",  price: 9800,  max: 3, bed: "Queen" },
+    // Pilgrims Bay Plaza
+    { id: "b1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID2, name: "Bay View Suite",          slug: "pbp-bay-view-suite",      desc: "Stunning bay-facing suite with private terrace and sunset panorama.",          price: 7500,  max: 3, bed: "King" },
+    { id: "b2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID2, name: "Superior Room",           slug: "pbp-superior-room",       desc: "Well-appointed superior room with modern amenities and city views.",           price: 4200,  max: 2, bed: "Queen" },
+    { id: "b3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID2, name: "Family Suite",            slug: "pbp-family-suite",       desc: "Spacious suite designed for families with two bedrooms and a living area.",    price: 9500,  max: 5, bed: "Twin" },
+    // Mardale Hotel
+    { id: "c1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID3, name: "Deluxe Room",             slug: "mar-deluxe-room",        desc: "Elegantly furnished deluxe room in the heart of the city.",                   price: 3800,  max: 2, bed: "King" },
+    { id: "c2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID3, name: "Executive Suite",         slug: "mar-executive-suite",    desc: "Premium executive suite with dedicated work area and lounge.",               price: 6800,  max: 3, bed: "King" },
+    { id: "c3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID3, name: "Standard Room",           slug: "mar-standard-room",      desc: "Comfortable standard room perfect for business or leisure travelers.",        price: 2500,  max: 2, bed: "Twin" },
+    // GV Hotel
+    { id: "d1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID4, name: "Deluxe Double",           slug: "gv-deluxe-double",       desc: "Clean and comfortable deluxe double room with modern furnishings.",           price: 2800,  max: 2, bed: "Queen" },
+    { id: "d2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID4, name: "Superior Twin",           slug: "gv-superior-twin",       desc: "Bright superior twin room ideal for two guests.",                            price: 2200,  max: 2, bed: "Twin" },
+    { id: "d3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID4, name: "Family Room",             slug: "gv-family-room",         desc: "Spacious family room with extra beds and child-friendly amenities.",         price: 3500,  max: 4, bed: "Twin" },
+    // Lex Hotel
+    { id: "e1111111-1111-1111-1111-111111111111", hotelId: HOTEL_ID5, name: "Classic Room",            slug: "lex-classic-room",       desc: "Timeless classic room with refined interiors and all essentials.",           price: 3200,  max: 2, bed: "Queen" },
+    { id: "e2222222-2222-2222-2222-222222222222", hotelId: HOTEL_ID5, name: "Junior Suite",            slug: "lex-junior-suite",       desc: "Comfortable junior suite with separate seating area.",                       price: 5500,  max: 3, bed: "King" },
+    { id: "e3333333-3333-3333-3333-333333333333", hotelId: HOTEL_ID5, name: "Business Suite",          slug: "lex-business-suite",     desc: "Premium suite tailored for business travelers with high-speed internet.",   price: 7200,  max: 2, bed: "King" },
   ];
 
   for (const rt of roomTypes) {
@@ -67,53 +126,83 @@ export async function seedDatabase(db: PGlite) {
       `INSERT INTO room_types (id, hotel_id, name, slug, description, max_occupancy, base_price, bed_type, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
        ON CONFLICT (id) DO NOTHING;`,
-      [rt.id, HOTEL_ID, rt.name, rt.slug, rt.desc, rt.max, rt.price, rt.bed]
+      [rt.id, rt.hotelId, rt.name, rt.slug, rt.desc, rt.max, rt.price, rt.bed]
     );
   }
 
-  // ── 3. 20 SAMPLE ROOMS ──────────────────────────────────────────────────
-  console.log("🚪 Seeding 20 Rooms...");
-  const roomsData = [
-    { number: "101", type_id: roomTypes[0].id, floor: 1, status: "available", cleaning: "clean" },
-    { number: "102", type_id: roomTypes[0].id, floor: 1, status: "occupied", cleaning: "clean" },
-    { number: "103", type_id: roomTypes[2].id, floor: 1, status: "available", cleaning: "clean" },
-    { number: "104", type_id: roomTypes[3].id, floor: 1, status: "reserved", cleaning: "clean" },
-    { number: "105", type_id: roomTypes[3].id, floor: 1, status: "maintenance", cleaning: "dirty" },
-    { number: "201", type_id: roomTypes[1].id, floor: 2, status: "occupied", cleaning: "clean" },
-    { number: "202", type_id: roomTypes[1].id, floor: 2, status: "available", cleaning: "clean" },
-    { number: "203", type_id: roomTypes[2].id, floor: 2, status: "cleaning", cleaning: "in_progress" },
-    { number: "204", type_id: roomTypes[2].id, floor: 2, status: "available", cleaning: "clean" },
-    { number: "205", type_id: roomTypes[3].id, floor: 2, status: "available", cleaning: "clean" },
-    { number: "301", type_id: roomTypes[0].id, floor: 3, status: "available", cleaning: "clean" },
-    { number: "302", type_id: roomTypes[1].id, floor: 3, status: "reserved", cleaning: "clean" },
-    { number: "303", type_id: roomTypes[5].id, floor: 3, status: "occupied", cleaning: "clean" },
-    { number: "304", type_id: roomTypes[5].id, floor: 3, status: "available", cleaning: "clean" },
-    { number: "305", type_id: roomTypes[4].id, floor: 3, status: "occupied", cleaning: "inspected" },
-    { number: "401", type_id: roomTypes[2].id, floor: 4, status: "available", cleaning: "clean" },
-    { number: "402", type_id: roomTypes[0].id, floor: 4, status: "reserved", cleaning: "clean" },
-    { number: "403", type_id: roomTypes[3].id, floor: 4, status: "out_of_order", cleaning: "dirty" },
-    { number: "501", type_id: roomTypes[4].id, floor: 5, status: "available", cleaning: "inspected" },
-    { number: "502", type_id: roomTypes[1].id, floor: 5, status: "occupied", cleaning: "clean" },
+  // ── 3. ROOMS (for all hotels) ────────────────────────────────────────────
+  console.log("🚪 Seeding Rooms for all hotels...");
+
+  // Room type ID references by index position in roomTypes array
+  const allRoomsData = [
+    // Grand Azure Hotel (roomTypes[0..5])
+    { hotel: HOTEL_ID, number: "101", type_id: "a1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID, number: "102", type_id: "a1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID, number: "103", type_id: "a3333333-3333-3333-3333-333333333333", floor: 1 },
+    { hotel: HOTEL_ID, number: "104", type_id: "a4444444-4444-4444-4444-444444444444", floor: 1 },
+    { hotel: HOTEL_ID, number: "105", type_id: "a4444444-4444-4444-4444-444444444444", floor: 1 },
+    { hotel: HOTEL_ID, number: "201", type_id: "a2222222-2222-2222-2222-222222222222", floor: 2 },
+    { hotel: HOTEL_ID, number: "202", type_id: "a2222222-2222-2222-2222-222222222222", floor: 2 },
+    { hotel: HOTEL_ID, number: "203", type_id: "a3333333-3333-3333-3333-333333333333", floor: 2 },
+    { hotel: HOTEL_ID, number: "204", type_id: "a3333333-3333-3333-3333-333333333333", floor: 2 },
+    { hotel: HOTEL_ID, number: "205", type_id: "a4444444-4444-4444-4444-444444444444", floor: 2 },
+    { hotel: HOTEL_ID, number: "301", type_id: "a1111111-1111-1111-1111-111111111111", floor: 3 },
+    { hotel: HOTEL_ID, number: "302", type_id: "a2222222-2222-2222-2222-222222222222", floor: 3 },
+    { hotel: HOTEL_ID, number: "303", type_id: "a6666666-6666-6666-6666-666666666666", floor: 3 },
+    { hotel: HOTEL_ID, number: "304", type_id: "a6666666-6666-6666-6666-666666666666", floor: 3 },
+    { hotel: HOTEL_ID, number: "305", type_id: "a5555555-5555-5555-5555-555555555555", floor: 3 },
+    { hotel: HOTEL_ID, number: "401", type_id: "a3333333-3333-3333-3333-333333333333", floor: 4 },
+    { hotel: HOTEL_ID, number: "402", type_id: "a1111111-1111-1111-1111-111111111111", floor: 4 },
+    { hotel: HOTEL_ID, number: "403", type_id: "a4444444-4444-4444-4444-444444444444", floor: 4 },
+    { hotel: HOTEL_ID, number: "501", type_id: "a5555555-5555-5555-5555-555555555555", floor: 5 },
+    { hotel: HOTEL_ID, number: "502", type_id: "a2222222-2222-2222-2222-222222222222", floor: 5 },
+    // Pilgrims Bay Plaza
+    { hotel: HOTEL_ID2, number: "101", type_id: "b1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID2, number: "102", type_id: "b2222222-2222-2222-2222-222222222222", floor: 1 },
+    { hotel: HOTEL_ID2, number: "103", type_id: "b2222222-2222-2222-2222-222222222222", floor: 1 },
+    { hotel: HOTEL_ID2, number: "201", type_id: "b1111111-1111-1111-1111-111111111111", floor: 2 },
+    { hotel: HOTEL_ID2, number: "202", type_id: "b3333333-3333-3333-3333-333333333333", floor: 2 },
+    { hotel: HOTEL_ID2, number: "301", type_id: "b3333333-3333-3333-3333-333333333333", floor: 3 },
+    { hotel: HOTEL_ID2, number: "302", type_id: "b1111111-1111-1111-1111-111111111111", floor: 3 },
+    // Mardale Hotel
+    { hotel: HOTEL_ID3, number: "101", type_id: "c1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID3, number: "102", type_id: "c3333333-3333-3333-3333-333333333333", floor: 1 },
+    { hotel: HOTEL_ID3, number: "103", type_id: "c3333333-3333-3333-3333-333333333333", floor: 1 },
+    { hotel: HOTEL_ID3, number: "201", type_id: "c2222222-2222-2222-2222-222222222222", floor: 2 },
+    { hotel: HOTEL_ID3, number: "202", type_id: "c1111111-1111-1111-1111-111111111111", floor: 2 },
+    // GV Hotel
+    { hotel: HOTEL_ID4, number: "101", type_id: "d1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID4, number: "102", type_id: "d2222222-2222-2222-2222-222222222222", floor: 1 },
+    { hotel: HOTEL_ID4, number: "103", type_id: "d2222222-2222-2222-2222-222222222222", floor: 1 },
+    { hotel: HOTEL_ID4, number: "201", type_id: "d3333333-3333-3333-3333-333333333333", floor: 2 },
+    { hotel: HOTEL_ID4, number: "202", type_id: "d1111111-1111-1111-1111-111111111111", floor: 2 },
+    // Lex Hotel
+    { hotel: HOTEL_ID5, number: "101", type_id: "e1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID5, number: "102", type_id: "e1111111-1111-1111-1111-111111111111", floor: 1 },
+    { hotel: HOTEL_ID5, number: "201", type_id: "e2222222-2222-2222-2222-222222222222", floor: 2 },
+    { hotel: HOTEL_ID5, number: "202", type_id: "e3333333-3333-3333-3333-333333333333", floor: 2 },
+    { hotel: HOTEL_ID5, number: "301", type_id: "e3333333-3333-3333-3333-333333333333", floor: 3 },
   ];
 
   const roomIdsMap: Record<string, string> = {};
 
-  for (const r of roomsData) {
+  for (const r of allRoomsData) {
     const res = await db.query<{ id: string }>(
       `INSERT INTO rooms (hotel_id, room_type_id, room_number, floor_number, status, cleaning_status, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, true)
-       ON CONFLICT (hotel_id, room_number) DO UPDATE SET status = EXCLUDED.status, cleaning_status = EXCLUDED.cleaning_status
+       VALUES ($1, $2, $3, $4, 'available', 'clean', true)
+       ON CONFLICT (hotel_id, room_number) DO UPDATE SET status = 'available', cleaning_status = 'clean'
        RETURNING id;`,
-      [HOTEL_ID, r.type_id, r.number, r.floor, r.status, r.cleaning]
+      [r.hotel, r.type_id, r.number, r.floor]
     );
     if (res.rows[0]?.id) {
-      roomIdsMap[r.number] = res.rows[0].id;
+      roomIdsMap[`${r.hotel}-${r.number}`] = res.rows[0].id;
     }
   }
 
-  // ── 4. 20 SAMPLE GUESTS & RESERVATIONS ──────────────────────────────────
-  console.log("👥 Seeding 20 Guests & Reservations...");
-  const sampleGuests = [
+  // ── 4. (No sample guests/reservations — hotel starts fresh) ────────────
+  console.log("✅ Skipping sample guests/reservations — hotel starts fresh.");
+  // Placeholder so references below still compile:
+  const sampleGuests: never[] = [
     { first: "Sofia", last: "Garcia", email: "sofia.garcia@gmail.com", phone: "+63 917 111 2233", room: "102", status: "checked_in", total: 17000, daysAgo: 1, stayDays: 3 },
     { first: "Kenji", last: "Tanaka", email: "kenji.tanaka@tokyo.jp", phone: "+81 90 1234 5678", room: "201", status: "checked_in", total: 45000, daysAgo: 2, stayDays: 5 },
     { first: "Chloe", last: "Dupont", email: "chloe.dupont@paris.fr", phone: "+33 6 12 34 56 78", room: "303", status: "checked_in", total: 29400, daysAgo: 1, stayDays: 4 },
@@ -133,47 +222,11 @@ export async function seedDatabase(db: PGlite) {
     { first: "Mei-Ling", last: "Chen", email: "meiling.chen@taipei.tw", phone: "+886 912 345 678", room: "301", status: "confirmed", total: 25500, daysAgo: -7, stayDays: 3 },
     { first: "Lucas", last: "Van Der Berg", email: "lucas.vdb@amsterdam.nl", phone: "+31 6 12345678", room: "105", status: "cancelled", total: 13500, daysAgo: 4, stayDays: 3 },
     { first: "Olivia", last: "Brown", email: "olivia.brown@toronto.ca", phone: "+1 416 555 0147", room: "203", status: "checked_out", total: 18600, daysAgo: 8, stayDays: 3 },
-    { first: "Rohan", last: "Sharma", email: "rohan.sharma@mumbai.in", phone: "+91 98200 12345", room: "403", status: "cancelled", total: 9000, daysAgo: 2, stayDays: 2 },
   ];
 
-  for (let idx = 0; idx < sampleGuests.length; idx++) {
-    const g = sampleGuests[idx];
-    const confNum = `RES-100${String(idx + 1).padStart(2, "0")}`;
-
-    const gRes = await db.query<{ id: string }>(
-      `INSERT INTO guests (hotel_id, first_name, last_name, email, phone)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id;`,
-      [HOTEL_ID, g.first, g.last, g.email, g.phone]
-    );
-    const guestId = gRes.rows[0]?.id;
-    const roomId = roomIdsMap[g.room];
-
-    if (guestId && roomId) {
-      const roomRate = g.total / g.stayDays;
-      await db.query(
-        `INSERT INTO reservations (
-          hotel_id, guest_id, room_id, confirmation_number, status,
-          check_in_date, check_out_date, adults, children, room_rate, subtotal, total_amount, paid_amount
-         ) VALUES (
-          $1, $2, $3, $4, $5,
-          CURRENT_DATE - (${g.daysAgo} || ' days')::INTERVAL,
-          CURRENT_DATE - (${g.daysAgo} || ' days')::INTERVAL + (${g.stayDays} || ' days')::INTERVAL,
-          2, 0, $6, $7, $7, $8
-         ) ON CONFLICT (confirmation_number) DO NOTHING;`,
-        [
-          HOTEL_ID,
-          guestId,
-          roomId,
-          confNum,
-          g.status,
-          roomRate,
-          g.total,
-          g.status === "checked_in" || g.status === "checked_out" || g.status === "confirmed" ? g.total : 0,
-        ]
-      );
-    }
-  }
+  // No sample guests or reservations inserted — keeping database clean
+  void sampleGuests;
+  void roomIdsMap;
 
   // ── 5. 20 SAMPLE MAINTENANCE TICKETS ──────────────────────────────────
   console.log("🛠️  Seeding 20 Maintenance Tickets...");

@@ -24,7 +24,8 @@ export default function GuestReservationsPage() {
     setLoading(true);
     const supabase = createClient();
     try {
-      const { data } = await (supabase as any)
+      // Primary query: by profile_id (set when user is logged in during booking)
+      const { data: byProfile } = await (supabase as any)
         .from("reservations")
         .select(`
           id, confirmation_number, status, check_in_date, check_out_date, total_amount,
@@ -33,7 +34,42 @@ export default function GuestReservationsPage() {
         `)
         .eq("profile_id", user.id)
         .order("created_at", { ascending: false });
-      setReservations((data ?? []) as Reservation[]);
+
+      // Secondary query: by guest email (covers cases where user booked without profile_id linked)
+      const userEmail = user.email;
+      let byEmail: Reservation[] = [];
+      if (userEmail) {
+        // Find guest records matching this email
+        const { data: guestRecords } = await (supabase as any)
+          .from("guests")
+          .select("id")
+          .eq("email", userEmail);
+
+        if (guestRecords && guestRecords.length > 0) {
+          const guestIds = guestRecords.map((g: { id: string }) => g.id);
+          const { data: emailReservations } = await (supabase as any)
+            .from("reservations")
+            .select(`
+              id, confirmation_number, status, check_in_date, check_out_date, total_amount,
+              room_types(name),
+              rooms(room_number)
+            `)
+            .in("guest_id", guestIds)
+            .order("created_at", { ascending: false });
+          byEmail = (emailReservations ?? []) as Reservation[];
+        }
+      }
+
+      // Merge and deduplicate by id
+      const all = [...(byProfile ?? []), ...byEmail];
+      const seen = new Set<string>();
+      const merged = all.filter((r) => {
+        if (seen.has(r.id)) return false;
+        seen.add(r.id);
+        return true;
+      });
+
+      setReservations(merged);
     } catch {
       setReservations([]);
     } finally {
@@ -44,10 +80,22 @@ export default function GuestReservationsPage() {
   useEffect(() => {
     fetchReservations();
 
-    // Verify session_id from Stripe redirect if present
+    // Handle redirect from payment gateways
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const sessionId = params.get("session_id");
+      const success = params.get("success");
+
+      // GCash success redirect
+      if (success === "true") {
+        toast.success("Booking confirmed! Welcome to Grand Azure.");
+        // Clean URL without reloading
+        window.history.replaceState({}, "", window.location.pathname);
+        // Fetch again after a short delay to ensure DB has been written
+        setTimeout(() => fetchReservations(), 1000);
+      }
+
+      // Stripe session verify
       if (sessionId) {
         fetch("/api/checkout/verify", {
           method: "POST",
@@ -69,6 +117,7 @@ export default function GuestReservationsPage() {
       fetchReservations();
     }, 10000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const filtered = reservations.filter(r =>

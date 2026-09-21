@@ -63,6 +63,16 @@ export async function handlePostgrestRequest(
           return `$${paramIdx()}`;
         });
         whereClauses.push(`"${key}" IN (${placeholders.join(",")})`);
+      } else if (val.startsWith("not.in.(")) {
+        const items = val.slice(8, -1).split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
+        const placeholders = items.map((item) => {
+          params.push(item);
+          return `$${paramIdx()}`;
+        });
+        whereClauses.push(`"${key}" NOT IN (${placeholders.join(",")})`);
+      } else if (val.startsWith("not.eq.")) {
+        params.push(val.slice(7));
+        whereClauses.push(`"${key}" != $${paramIdx()}`);
       }
     });
 

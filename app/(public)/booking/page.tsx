@@ -4,7 +4,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { CalendarDays, Star, Receipt, Check, User, CreditCard, Loader2 } from "lucide-react";
+import { CalendarDays, Star, Receipt, Check, User, Loader2, Hotel } from "lucide-react";
 import { Button, Input, Label, Card, CardContent, CardHeader, CardTitle } from "@/components/ui";
 import { calculateNights, formatCurrency } from "@/lib/utils";
 import { BOOKING_EXTRAS, DEFAULT_HOTEL, DEFAULT_ROOM_TYPES } from "@/constants";
@@ -33,7 +33,7 @@ function BookingForm() {
   const [guestPhone, setGuestPhone] = useState("");
 
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "gcash">("card");
+  const [paymentMethod, setPaymentMethod] = useState<"walkin" | "gcash">("walkin");
   const [loading, setLoading] = useState(false);
   const [fetchingRooms, setFetchingRooms] = useState(false);
 
@@ -162,7 +162,7 @@ function BookingForm() {
     };
 
     try {
-      // 1. Double-booking check: Verify room is not taken for selected dates
+      // 1. Double-booking check
       const checkRes = await fetch("/api/booking/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -184,7 +184,8 @@ function BookingForm() {
         sessionStorage.setItem("azure_pending_booking", JSON.stringify(bookingPayload));
         window.location.assign("/checkout/gcash");
       } else {
-        const response = await fetch("/api/checkout", {
+        // Pay at Hotel — create reservation, payment collected at check-in
+        const response = await fetch("/api/checkout/walk-in", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(bookingPayload),
@@ -192,11 +193,14 @@ function BookingForm() {
 
         const data = await response.json();
 
-        if (!response.ok || !data.url) {
-          throw new Error(data.error || "Failed to create checkout session");
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to create reservation");
         }
 
-        window.location.assign(data.url);
+        toast.success(`Booking confirmed! Confirmation: ${data.confirmationNumber}`);
+        setTimeout(() => {
+          window.location.assign(user ? "/guest/reservations?success=true" : "/");
+        }, 1800);
       }
     } catch (err: any) {
       console.error(err);
@@ -446,15 +450,15 @@ function BookingForm() {
               <span className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wider block">Payment Method</span>
               <div className="grid grid-cols-2 gap-2.5">
                 <div
-                  onClick={() => setPaymentMethod("card")}
+                  onClick={() => setPaymentMethod("walkin")}
                   className={`p-3 border rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all ${
-                    paymentMethod === "card"
+                    paymentMethod === "walkin"
                       ? "border-gold-500 bg-gold-50/10 text-gold-600 dark:text-gold-400 font-semibold"
                       : "border-border/50 hover:bg-muted/20 text-muted-foreground"
                   }`}
                 >
-                  <CreditCard className="h-4.5 w-4.5 mb-1" />
-                  <span className="text-[10px] font-bold">Credit Card</span>
+                  <Hotel className="h-4.5 w-4.5 mb-1" />
+                  <span className="text-[10px] font-bold text-center leading-tight">Pay at Hotel</span>
                 </div>
                 <div
                   onClick={() => setPaymentMethod("gcash")}
@@ -468,6 +472,11 @@ function BookingForm() {
                   <span className="text-[10px] font-bold">GCash Portal</span>
                 </div>
               </div>
+              {paymentMethod === "walkin" && (
+                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium text-center bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg py-2 px-3">
+                  💳 Payment will be collected at the front desk upon check-in.
+                </p>
+              )}
             </div>
 
             <div className="pt-6">

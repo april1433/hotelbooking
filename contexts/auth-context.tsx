@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { User, Session, SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, UserRole } from "@/types";
@@ -74,6 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const loadedUserIdRef = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async (currentUser: User) => {
     try {
@@ -131,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(initialSession?.user ?? null);
         if (initialSession?.user) {
           await fetchProfile(initialSession.user);
+          loadedUserIdRef.current = initialSession.user.id;
         }
       } catch {
         // silently handle session errors
@@ -146,11 +148,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         if (currentSession?.user) {
-          setLoading(true);
+          const isNewUser = loadedUserIdRef.current !== currentSession.user.id;
+          if (isNewUser) {
+            setLoading(true);
+          }
           await fetchProfile(currentSession.user);
-          setLoading(false);
+          loadedUserIdRef.current = currentSession.user.id;
+          if (isNewUser) {
+            setLoading(false);
+          }
         } else {
+          loadedUserIdRef.current = null;
           setProfile(null);
+          setLoading(false);
         }
       }
     );
@@ -161,6 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     setLoading(true);
     await supabase.auth.signOut();
+    loadedUserIdRef.current = null;
     setUser(null);
     setProfile(null);
     setSession(null);

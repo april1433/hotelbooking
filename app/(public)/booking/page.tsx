@@ -34,6 +34,7 @@ function BookingForm() {
 
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<"walkin" | "gcash">("walkin");
+  const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingRooms, setFetchingRooms] = useState(false);
 
@@ -134,6 +135,11 @@ function BookingForm() {
 
     if (!email || !firstName || !lastName) {
       toast.error("Please provide guest contact details (Name & Email).");
+      return;
+    }
+
+    if (!agreedToPolicy) {
+      toast.error("Please agree to the Cancellation & Refund Policy before proceeding.");
       return;
     }
 
@@ -479,10 +485,58 @@ function BookingForm() {
               )}
             </div>
 
-            <div className="pt-6">
-              <Button variant="gold" size="lg" className="w-full rounded-xl font-semibold" loading={loading}>
+            {/* Cancellation & Refund Policy Notice + Agreement */}
+            <div className="border-t border-border/50 pt-4 space-y-3">
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/20 p-3 space-y-1.5 text-[11px] text-amber-900 dark:text-amber-200">
+                <p className="font-semibold text-xs">Cancellation &amp; Refund Policy</p>
+                <p className="leading-relaxed opacity-90">
+                  If you cancel a paid reservation, your payment will be refunded to you with a{" "}
+                  <strong>10% cancellation deduction</strong> (<strong>90% refunded</strong>). A refund
+                  summary showing the deducted amount and total refunded amount will be sent to your email.
+                </p>
+                {paymentMethod === "gcash" && total > 0 && (
+                  <div className="pt-1.5 mt-1.5 border-t border-amber-200/70 dark:border-amber-800/50 space-y-0.5 text-[10px]">
+                    <div className="flex justify-between">
+                      <span>10% Cancellation Deduction:</span>
+                      <span className="font-semibold">-{formatCurrency(total * 0.1)}</span>
+                    </div>
+                    <div className="flex justify-between font-semibold text-emerald-700 dark:text-emerald-400">
+                      <span>Refundable if Cancelled (90%):</span>
+                      <span>{formatCurrency(total * 0.9)}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <label
+                htmlFor="policyAgreement"
+                className="flex items-start gap-2.5 cursor-pointer select-none rounded-xl border border-border/60 p-3 hover:bg-muted/30 transition-colors"
+              >
+                <input
+                  id="policyAgreement"
+                  type="checkbox"
+                  checked={agreedToPolicy}
+                  onChange={(e) => setAgreedToPolicy(e.target.checked)}
+                  required
+                  className="mt-0.5 h-4 w-4 rounded border-border accent-gold-600 cursor-pointer shrink-0"
+                />
+                <span className="text-[11px] leading-snug text-muted-foreground">
+                  I have read and agree to the{" "}
+                  <span className="font-semibold text-foreground">Booking &amp; Cancellation Policy</span>{" "}
+                  (a 10% deduction fee applies upon cancellation of paid bookings).
+                </span>
+              </label>
+            </div>
+
+            <div className="pt-2">
+              <Button variant="gold" size="lg" className="w-full rounded-xl font-semibold" loading={loading} disabled={!agreedToPolicy}>
                 {paymentMethod === "walkin" ? "Confirm Reservation (Pay at Hotel)" : "Proceed to GCash Payment"}
               </Button>
+              {!agreedToPolicy && (
+                <p className="text-[10px] text-muted-foreground text-center mt-2">
+                  Please check the policy agreement box above to proceed.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

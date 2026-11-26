@@ -311,6 +311,12 @@ export default function GCashMockPortal() {
                   </div>
                 </div>
 
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 text-[11px] text-amber-900 leading-relaxed">
+                  <span className="font-bold">Cancellation Policy Agreement:</span> Cancelling this paid reservation incurs a{" "}
+                  <span className="font-bold">10% fee ({formatCurrency(bookingData.totalAmount * 0.1)})</span>.{" "}
+                  <span className="font-bold">{formatCurrency(bookingData.totalAmount * 0.9)} (90%)</span> will be refunded and confirmed via email.
+                </div>
+
                 <button
                   onClick={handlePayment}
                   disabled={loading}

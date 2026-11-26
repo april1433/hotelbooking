@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, StatusBadge, Button, Input, Label } from "@/components/ui";
-import { Search, Plus, CalendarDays, Download, Eye, RefreshCw, ChevronLeft, ChevronRight, X, Loader2, User, BedDouble, XCircle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, StatusBadge, Button, Input, Label } from "@/components/ui";
+import { Search, Plus, CalendarDays, Download, Eye, RefreshCw, ChevronLeft, ChevronRight, X, Loader2, User, BedDouble, XCircle, CheckCircle2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { DEFAULT_RESERVATIONS, DEFAULT_HOTELS, DEFAULT_ROOM_TYPES, DEFAULT_ROOMS } from "@/constants";
+import { DEFAULT_HOTELS, DEFAULT_ROOM_TYPES, DEFAULT_ROOMS } from "@/constants";
 
 const STATUS_OPTIONS = ["all", "pending", "confirmed", "checked_in", "checked_out", "cancelled", "no_show"];
 
@@ -43,6 +43,7 @@ export default function ReservationsPage() {
   const [adults, setAdults] = useState("1");
   const [children, setChildren] = useState("0");
   const [paymentStatus, setPaymentStatus] = useState("pending");
+  const [bookingStatus, setBookingStatus] = useState<"confirmed" | "pending">("confirmed");
 
   // Assign Room modal
   const [assignModal, setAssignModal] = useState<{ reservationId: string; roomTypeId: string; hotelId: string } | null>(null);
@@ -50,47 +51,113 @@ export default function ReservationsPage() {
   const [assignRoomId, setAssignRoomId] = useState("");
   const [assigning, setAssigning] = useState(false);
 
-  async function fetchReservations() {
-    setLoading(true);
+  // Status update, Cancel, and Details modals
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [viewingRes, setViewingRes] = useState<any | null>(null);
+  const [cancellingRes, setCancellingRes] = useState<any | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
+  const isFetchingRef = useRef(false);
+
+  async function fetchReservations(silent = false) {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    if (!silent) setLoading(true);
     const supabase = createClient() as any;
     try {
       const { data, error } = await supabase
         .from("reservations")
         .select(`
-          id, confirmation_number, status, check_in_date, check_out_date, total_amount, source,
-          hotel_id, room_type_id,
-          guests(first_name, last_name, email),
-          rooms(room_number, room_types(name))
+          id, confirmation_number, status, check_in_date, check_out_date, total_amount, paid_amount, source,
+          hotel_id, room_type_id, room_id, profile_id, cancellation_reason, cancelled_at,
+          guests(first_name, last_name, email, phone),
+          rooms(room_number, room_types(name)),
+          room_types(name)
         `)
         .order("created_at", { ascending: false });
       if (error) {
         console.error("Database error fetching reservations:", error);
+      } else if (data) {
+        setReservations(data);
       }
-      setReservations(data || []);
     } catch (err) {
       console.error("Error fetching reservations:", err);
-      setReservations([]);
+      if (!silent) setReservations([]);
     } finally {
-      setLoading(false);
+      isFetchingRef.current = false;
+      if (!silent) setLoading(false);
     }
   }
 
-  async function handleAdminCancel(r: any) {
-    if (!window.confirm(`Are you sure you want to cancel reservation ${r.confirmation_number ?? r.id.slice(0, 8)} for ${r.guests?.first_name} ${r.guests?.last_name}?`)) {
-      return;
+  async function handleConfirmReservation(r: any) {
+    setUpdatingId(r.id);
+    const supabase = createClient() as any;
+    try {
+      const { error } = await supabase
+        .from("reservations")
+        .update({ status: "confirmed", updated_at: new Date().toISOString() })
+        .eq("id", r.id);
+      if (error) throw error;
+
+      if (r.room_id) {
+        await supabase
+          .from("rooms")
+          .update({ status: "reserved" })
+          .eq("id", r.room_id)
+          .eq("status", "available");
+      }
+
+      try {
+        await supabase.from("notifications").insert({
+          hotel_id: r.hotel_id,
+          user_id: r.profile_id || null,
+          title: "Reservation Confirmed",
+          message: `Reservation ${r.confirmation_number ?? r.id.slice(0, 8)} for ${r.guests?.first_name ?? "Guest"} ${r.guests?.last_name ?? ""} has been confirmed.`,
+          type: "booking_confirmation",
+          is_read: false,
+        });
+      } catch {
+        // Non-fatal
+      }
+
+      setReservations(prev => prev.map(item => (item.id === r.id ? { ...item, status: "confirmed" } : item)));
+      if (viewingRes?.id === r.id) {
+        setViewingRes((prev: any) => (prev ? { ...prev, status: "confirmed" } : prev));
+      }
+      toast.success(`Reservation ${r.confirmation_number ?? r.id.slice(0, 8)} confirmed.`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to confirm reservation.");
+    } finally {
+      setUpdatingId(null);
     }
+  }
+
+  async function handleConfirmAdminCancel() {
+    if (!cancellingRes) return;
+    setCancelSubmitting(true);
     try {
       const res = await fetch("/api/booking/cancel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reservationId: r.id, reason: "Cancelled by hotel administrator" }),
+        body: JSON.stringify({
+          reservationId: cancellingRes.id,
+          reason: cancelReason || "Cancelled by hotel administrator",
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to cancel reservation");
-      toast.success(`Reservation ${r.confirmation_number ?? r.id.slice(0, 8)} cancelled.`);
-      fetchReservations();
+      toast.success(data.message || `Reservation ${cancellingRes.confirmation_number ?? cancellingRes.id.slice(0, 8)} cancelled.`);
+      setCancellingRes(null);
+      setCancelReason("");
+      if (viewingRes?.id === cancellingRes.id) {
+        setViewingRes(null);
+      }
+      fetchReservations(true);
     } catch (err: any) {
       toast.error(err.message || "Failed to cancel reservation");
+    } finally {
+      setCancelSubmitting(false);
     }
   }
 
@@ -116,13 +183,15 @@ export default function ReservationsPage() {
   }
 
   useEffect(() => {
-    fetchReservations();
-    loadConfig();
+    void (async () => {
+      await fetchReservations(false);
+      await loadConfig();
+    })();
 
-    // Auto-poll every 8 seconds so any newly booked reservations immediately appear in the menu
+    // Silent background poll every 15s so the UI never flashes loading skeletons
     const interval = setInterval(() => {
-      fetchReservations();
-    }, 8000);
+      void fetchReservations(true);
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -161,12 +230,13 @@ export default function ReservationsPage() {
         setSelectedRoomTypeId("");
       }
     }
-    loadRoomTypes();
+    void loadRoomTypes();
   }, [selectedHotelId]);
 
   // Fetch specific Rooms when room type changes
   useEffect(() => {
     if (!selectedRoomTypeId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRooms([]);
       setSelectedRoomId("");
       return;
@@ -181,7 +251,7 @@ export default function ReservationsPage() {
         setSelectedRoomId("");
       }
     }
-    loadRooms();
+    void loadRooms();
   }, [selectedRoomTypeId]);
 
   const filtered = reservations.filter(r => {
@@ -236,7 +306,7 @@ export default function ReservationsPage() {
       await supabase.from("rooms").update({ status: "reserved" }).eq("id", assignRoomId);
       toast.success("Room assigned successfully.");
       setAssignModal(null);
-      fetchReservations();
+      fetchReservations(true);
     } catch (err: any) {
       toast.error(err.message || "Failed to assign room.");
     } finally {
@@ -261,6 +331,7 @@ export default function ReservationsPage() {
     setAdults("1");
     setChildren("0");
     setPaymentStatus("pending");
+    setBookingStatus("confirmed");
     if (hotels.length > 0) {
       setSelectedHotelId(hotels[0].id);
     }
@@ -350,7 +421,7 @@ export default function ReservationsPage() {
           tax_amount: taxAmount,
           total_amount: totalAmount,
           paid_amount: paymentStatus === "completed" ? totalAmount : 0,
-          status: "confirmed",
+          status: bookingStatus,
           source: "walk_in",
         })
         .select("id")
@@ -390,7 +461,7 @@ export default function ReservationsPage() {
 
       toast.success(`Reservation created successfully: ${confirmationNum}`);
       setShowModal(false);
-      fetchReservations();
+      fetchReservations(true);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to log reservation.");
@@ -407,7 +478,7 @@ export default function ReservationsPage() {
           <p className="page-subtitle">Manage all guest bookings and stays.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={fetchReservations} variant="outline" size="sm" className="rounded-xl border-border/80">
+          <Button onClick={() => fetchReservations(false)} variant="outline" size="sm" className="rounded-xl border-border/80">
             <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
           <Button onClick={handleExportCSV} variant="outline" size="sm" className="rounded-xl border-border/80">
@@ -528,21 +599,37 @@ export default function ReservationsPage() {
                       <td className="px-4 py-3.5"><StatusBadge status={r.status} /></td>
                       <td className="px-4 py-3.5 text-right text-sm font-semibold text-gold-600">{formatCurrency(r.total_amount ?? 0)}</td>
                       <td className="px-4 py-3.5">
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <button
-                            onClick={() => toast.info(`Viewing details for ${r.confirmation_number ?? r.id.slice(0, 8)}`)}
+                            onClick={() => setViewingRes(r)}
                             title="View Details"
                             className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
-                          {!["cancelled", "checked_out"].includes(r.status) && (
+                          {["pending", "waitlisted"].includes(r.status) && (
                             <button
-                              onClick={() => handleAdminCancel(r)}
-                              title="Cancel Reservation"
-                              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-red-500 hover:text-red-600 transition-colors"
+                              onClick={() => handleConfirmReservation(r)}
+                              disabled={updatingId === r.id}
+                              title="Confirm Reservation"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 text-[11px] font-semibold transition-colors disabled:opacity-50"
                             >
-                              <XCircle className="h-3.5 w-3.5" />
+                              {updatingId === r.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="h-3 w-3" />
+                              )}
+                              Confirm
+                            </button>
+                          )}
+                          {!["cancelled", "checked_in", "checked_out"].includes(r.status) && (
+                            <button
+                              onClick={() => { setCancellingRes(r); setCancelReason(""); }}
+                              title="Cancel Reservation"
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/30 dark:text-red-400 text-[11px] font-semibold transition-colors"
+                            >
+                              <XCircle className="h-3 w-3" />
+                              Cancel
                             </button>
                           )}
                         </div>
@@ -668,8 +755,8 @@ export default function ReservationsPage() {
                 </div>
               </div>
 
-              {/* Adults, Children, and Payment */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Adults, Children, Status, and Payment */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Adults</Label>
                   <select value={adults} onChange={e => setAdults(e.target.value)} className="w-full h-9 border border-input rounded-xl bg-background px-3 text-sm focus:outline-none">
@@ -685,6 +772,13 @@ export default function ReservationsPage() {
                     <option value="0">No Children</option>
                     <option value="1">1 Child</option>
                     <option value="2">2 Children</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Status</Label>
+                  <select value={bookingStatus} onChange={e => setBookingStatus(e.target.value as "confirmed" | "pending")} className="w-full h-9 border border-input rounded-xl bg-background px-3 text-sm focus:outline-none">
+                    <option value="confirmed">Confirmed</option>
+                    <option value="pending">Pending</option>
                   </select>
                 </div>
                 <div className="space-y-1">
@@ -760,6 +854,173 @@ export default function ReservationsPage() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Reservation Details Modal */}
+      {viewingRes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md border border-border/60 overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-border/40 bg-muted/30">
+              <div>
+                <h2 className="text-base font-semibold font-display">Reservation Details</h2>
+                <p className="text-xs font-mono text-muted-foreground">{viewingRes.confirmation_number ?? viewingRes.id.slice(0, 8)}</p>
+              </div>
+              <button onClick={() => setViewingRes(null)} className="p-1.5 rounded-xl hover:bg-muted">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Status</span>
+                <StatusBadge status={viewingRes.status} />
+              </div>
+              <div className="grid grid-cols-2 gap-3 bg-muted/30 rounded-xl p-3">
+                <div>
+                  <span className="text-muted-foreground block">Guest</span>
+                  <span className="font-semibold text-foreground">{viewingRes.guests?.first_name} {viewingRes.guests?.last_name}</span>
+                  <span className="block text-[11px] text-muted-foreground">{viewingRes.guests?.email}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Room</span>
+                  <span className="font-semibold text-foreground">
+                    {viewingRes.rooms?.room_number ? `Room ${viewingRes.rooms.room_number}` : "Unassigned"}
+                  </span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    {viewingRes.rooms?.room_types?.name ?? viewingRes.room_types?.name ?? "Suite"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Check-In</span>
+                  <span className="font-semibold text-foreground">{viewingRes.check_in_date}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block">Check-Out</span>
+                  <span className="font-semibold text-foreground">{viewingRes.check_out_date}</span>
+                </div>
+              </div>
+              <div className="space-y-1.5 border-t border-border/40 pt-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Amount</span>
+                  <span className="font-bold text-gold-600">{formatCurrency(viewingRes.total_amount ?? 0)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Amount Paid</span>
+                  <span className="font-semibold">{formatCurrency(viewingRes.paid_amount ?? 0)}</span>
+                </div>
+                {viewingRes.status === "cancelled" && Number(viewingRes.paid_amount ?? 0) > 0 && (
+                  <>
+                    <div className="flex justify-between text-amber-600">
+                      <span>Cancellation Deduction (10%)</span>
+                      <span>-{formatCurrency(Number(viewingRes.paid_amount) * 0.1)}</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-600 font-semibold">
+                      <span>Refunded Amount (90%)</span>
+                      <span>{formatCurrency(Number(viewingRes.paid_amount) * 0.9)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-2 pt-2">
+                {["pending", "waitlisted"].includes(viewingRes.status) && (
+                  <Button
+                    variant="gold"
+                    size="sm"
+                    className="flex-1 rounded-xl"
+                    disabled={updatingId === viewingRes.id}
+                    onClick={() => handleConfirmReservation(viewingRes)}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Confirm
+                  </Button>
+                )}
+                {!["cancelled", "checked_in", "checked_out"].includes(viewingRes.status) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 rounded-xl text-red-600 border-red-200 hover:bg-red-50"
+                    onClick={() => { setCancellingRes(viewingRes); setCancelReason(""); }}
+                  >
+                    <XCircle className="h-3.5 w-3.5 mr-1.5" /> Cancel
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setViewingRes(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Cancel & Refund Confirmation Modal */}
+      {cancellingRes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-md border border-border/60 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-full bg-red-100 text-red-600 flex items-center justify-center">
+                  <XCircle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold font-display">Cancel Reservation</h3>
+                  <p className="text-xs font-mono text-muted-foreground">{cancellingRes.confirmation_number ?? cancellingRes.id.slice(0, 8)}</p>
+                </div>
+              </div>
+              <button onClick={() => setCancellingRes(null)} className="p-1.5 rounded-lg hover:bg-muted">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {Number(cancellingRes.paid_amount ?? 0) > 0 ? (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 dark:bg-amber-950/20 dark:border-amber-800/50 p-3.5 text-xs space-y-1.5">
+                <p className="font-semibold text-amber-900 dark:text-amber-300">Refund Breakdown (10% Deduction Policy)</p>
+                <div className="flex justify-between">
+                  <span>Amount Paid:</span>
+                  <span className="font-semibold">{formatCurrency(Number(cancellingRes.paid_amount))}</span>
+                </div>
+                <div className="flex justify-between text-amber-700 dark:text-amber-400">
+                  <span>10% Cancellation Deduction:</span>
+                  <span>-{formatCurrency(Number(cancellingRes.paid_amount) * 0.1)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-emerald-700 dark:text-emerald-400 border-t border-amber-200/70 pt-1.5">
+                  <span>Total Refunded to Guest (90%):</span>
+                  <span>{formatCurrency(Number(cancellingRes.paid_amount) * 0.9)}</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground pt-1">
+                  An email with the deducted and refunded amounts will be sent to {cancellingRes.guests?.email || "the guest"}.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground bg-muted/40 rounded-xl p-3">
+                No online payment was recorded for this reservation. Cancelling will release any assigned room and notify the guest.
+              </p>
+            )}
+
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Cancellation Reason (optional)</Label>
+              <Input
+                placeholder="Reason for cancelling..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="rounded-xl h-9 text-xs"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" size="sm" className="flex-1 rounded-xl" onClick={() => setCancellingRes(null)} disabled={cancelSubmitting}>
+                Keep Booking
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 text-white border-transparent"
+                onClick={handleConfirmAdminCancel}
+                loading={cancelSubmitting}
+              >
+                Confirm Cancel
+              </Button>
             </div>
           </div>
         </div>

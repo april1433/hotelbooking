@@ -3,10 +3,10 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, Button, Input, Label } from "@/components/ui";
-import { Search, Plus, Users, RefreshCw, Eye, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
+import { Search, Plus, Users, RefreshCw, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { DEFAULT_GUESTS, DEFAULT_HOTELS } from "@/constants";
+import { DEFAULT_HOTELS } from "@/constants";
 
 export default function GuestsPage() {
   const [guests, setGuests] = useState<any[]>([]);
@@ -30,20 +30,20 @@ export default function GuestsPage() {
   const [hotels, setHotels] = useState<any[]>([]);
   const [selectedHotelId, setSelectedHotelId] = useState("");
 
-  async function fetchGuests() {
-    setLoading(true);
+  async function fetchGuests(silent = false) {
+    if (!silent) setLoading(true);
     const supabase = createClient() as any;
     try {
       const { data } = await supabase
         .from("guests")
         .select("*, hotels(name)")
         .order("created_at", { ascending: false });
-      setGuests(data || []);
+      if (data) setGuests(data);
     } catch (err) {
       console.error("Error fetching guests:", err);
-      setGuests([]);
+      if (!silent) setGuests([]);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
@@ -62,12 +62,14 @@ export default function GuestsPage() {
   }
 
   useEffect(() => {
-    fetchGuests();
-    loadHotels();
+    void (async () => {
+      await fetchGuests(false);
+      await loadHotels();
+    })();
 
     const interval = setInterval(() => {
-      fetchGuests();
-    }, 8000);
+      void fetchGuests(true);
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -145,7 +147,7 @@ export default function GuestsPage() {
           <p className="page-subtitle">Manage and view all registered guests.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={fetchGuests} variant="outline" size="sm" className="rounded-xl border-border/80">
+          <Button onClick={() => fetchGuests(false)} variant="outline" size="sm" className="rounded-xl border-border/80">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
           <Button onClick={openAddModal} variant="gold" size="sm" className="rounded-xl">

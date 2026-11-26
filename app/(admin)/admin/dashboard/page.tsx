@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -44,8 +45,8 @@ export default function AdminDashboardPage() {
     }
   }
 
-  async function fetchStats() {
-    setLoading(true);
+  async function fetchStats(silent = false) {
+    if (!silent) setLoading(true);
     const supabase = createClient();
     try {
       const today = new Date().toISOString().slice(0, 10);
@@ -91,10 +92,10 @@ export default function AdminDashboardPage() {
   }
 
   useEffect(() => { 
-    fetchStats(); 
+    fetchStats(false); 
     const interval = setInterval(() => {
-      fetchStats();
-    }, 10000);
+      fetchStats(true);
+    }, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -110,7 +111,7 @@ export default function AdminDashboardPage() {
           <p className="page-subtitle">Real-time operational summary for today.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={fetchStats} variant="outline" size="sm" className="rounded-xl border-border/80">
+          <Button onClick={() => fetchStats(false)} variant="outline" size="sm" className="rounded-xl border-border/80">
             <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? "animate-spin" : ""}`} /> Refresh
           </Button>
           <Button onClick={seedDatabase} variant="outline" size="sm" className="rounded-xl border-gold-500/40 text-gold-600 dark:text-gold-400 hover:bg-gold-500/10">

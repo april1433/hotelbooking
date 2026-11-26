@@ -50,14 +50,16 @@ async function handleRequest(request: NextRequest, params: { path: string[] }) {
         }
 
         const emailShortcuts: Record<string, string> = {
-          super: "super@grandazure.com",
-          admin: "admin@grandazure.com",
-          manager: "manager@grandazure.com",
-          reception: "reception@grandazure.com",
+          super:        "super@grandazure.com",
+          admin:        "admin@grandazure.com",
+          admin1:       "admin@grandazure.com",
+          admin2:       "admin2@grandazure.com",
+          manager:      "manager@grandazure.com",
+          reception:    "reception@grandazure.com",
           housekeeping: "housekeeping@grandazure.com",
-          cashier: "cashier@grandazure.com",
-          maintenance: "maintenance@grandazure.com",
-          guest: "guest@grandazure.com",
+          cashier:      "cashier@grandazure.com",
+          maintenance:  "maintenance@grandazure.com",
+          guest:        "guest@grandazure.com",
         };
 
         const email = emailShortcuts[inputEmail.toLowerCase()] || inputEmail;
@@ -130,11 +132,14 @@ async function handleRequest(request: NextRequest, params: { path: string[] }) {
       // ── GET USER ──────────────────────────────────────────────────────────
       if (authEndpoint === "user") {
         const authHeader = request.headers.get("authorization") || "";
-        let userId = "28537215-8bb7-49b9-85d0-2abeeafdbe6e"; // fallback default admin UUID
 
-        const match = authHeader.match(/local_token_([a-f0-9-]+)_/);
-        if (match) userId = match[1];
+        // Extract UUID from token: "Bearer local_token_<uuid>_<timestamp>"
+        const match = authHeader.match(/local_token_([a-f0-9-]{36})_/);
+        if (!match) {
+          return NextResponse.json({ error: "Missing or invalid token" }, { status: 401 });
+        }
 
+        const userId = match[1];
         const userRes = await db.query<any>(
           `SELECT * FROM auth.users WHERE id = $1 LIMIT 1;`,
           [userId]
@@ -165,9 +170,71 @@ async function handleRequest(request: NextRequest, params: { path: string[] }) {
         return new NextResponse(null, { status: 204 });
       }
 
-      // ── ADMIN USER UPDATE ─────────────────────────────────────────────────
+      // ── ADMIN CREATE USER ─────────────────────────────────────────────────
+      if (authEndpoint === "admin/users" && request.method === "POST") {
+        let body: any = {};
+        try {
+          body = await request.json();
+        } catch {
+          body = {};
+        }
+
+        const email = (body.email || "").trim();
+        const password = body.password || "123123";
+        const userMetadata = body.user_metadata ?? body.data ?? {};
+
+        if (!email) {
+          return NextResponse.json({ message: "Email is required", error: "Email is required" }, { status: 400 });
+        }
+
+        const existingRes = await db.query<any>(
+          `SELECT id FROM auth.users WHERE LOWER(email) = LOWER($1) LIMIT 1;`,
+          [email]
+        );
+        if (existingRes.rows.length > 0) {
+          return NextResponse.json(
+            { message: "A user with this email address has already been registered.", error: "email_exists" },
+            { status: 422 }
+          );
+        }
+
+        const newId = crypto.randomUUID();
+        const confirmedAt = body.email_confirm ? new Date().toISOString() : null;
+        const insertedRes = await db.query<any>(
+          `INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data)
+           VALUES ($1, $2, $3, COALESCE($4::timestamptz, NOW()), $5)
+           RETURNING *;`,
+          [newId, email, password, confirmedAt, JSON.stringify(userMetadata)]
+        );
+        const created = insertedRes.rows[0];
+        return NextResponse.json({
+          user: {
+            id: created.id,
+            aud: "authenticated",
+            role: "authenticated",
+            email: created.email,
+            email_confirmed_at: created.email_confirmed_at,
+            app_metadata: { provider: "email", providers: ["email"] },
+            user_metadata: typeof created.raw_user_meta_data === "string"
+              ? JSON.parse(created.raw_user_meta_data)
+              : (created.raw_user_meta_data ?? {}),
+            created_at: created.created_at,
+            updated_at: created.updated_at,
+          },
+        });
+      }
+
+      // ── ADMIN USER UPDATE / DELETE ────────────────────────────────────────
       if (authEndpoint.startsWith("admin/users/")) {
         const userId = authEndpoint.split("/")[2];
+
+        if (request.method === "DELETE") {
+          if (userId) {
+            await db.query(`DELETE FROM auth.users WHERE id = $1;`, [userId]);
+          }
+          return NextResponse.json({ id: userId, deleted: true });
+        }
+
         let body: any = {};
         try {
           body = await request.json();

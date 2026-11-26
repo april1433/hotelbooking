@@ -15,6 +15,13 @@ const PROTECTED_ROUTES: Record<string, string[]> = {
 };
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Fast-path API routes and OAuth callback without extra Supabase auth loopback calls
+  if (pathname.startsWith("/api/") || pathname.startsWith("/auth/callback")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient<Database>(
@@ -36,10 +43,19 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
+  // Only validate user via auth server when an auth cookie exists
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.includes("auth-token"));
+  let user = null;
+  if (hasAuthCookie) {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error) {
+        user = data.user;
+      }
+    } catch {
+      user = null;
+    }
+  }
 
   // ── Dev module: allow in development OR super_admin ──
   if (pathname.startsWith("/dev")) {

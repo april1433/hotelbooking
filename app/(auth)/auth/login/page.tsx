@@ -29,15 +29,20 @@ export default function LoginPage() {
     }
 
     let resolvedEmail = email.trim();
-    if (resolvedEmail.toLowerCase() === "admin") {
-      resolvedEmail = "admin2@grandazure.com";
-    } else if (resolvedEmail.toLowerCase() === "admin1") {
-      resolvedEmail = "admin@grandazure.com";
-    } else if (resolvedEmail.toLowerCase() === "super") {
-      resolvedEmail = "super@grandazure.com";
-    } else if (resolvedEmail.toLowerCase() === "guest") {
-      resolvedEmail = "guest@grandazure.com";
-    }
+    // Shorthand aliases — keep in sync with token endpoint's emailShortcuts
+    const EMAIL_SHORTCUTS: Record<string, string> = {
+      admin:        "admin@grandazure.com",
+      admin1:       "admin@grandazure.com",
+      admin2:       "admin2@grandazure.com",
+      super:        "super@grandazure.com",
+      manager:      "manager@grandazure.com",
+      reception:    "reception@grandazure.com",
+      housekeeping: "housekeeping@grandazure.com",
+      cashier:      "cashier@grandazure.com",
+      maintenance:  "maintenance@grandazure.com",
+      guest:        "guest@grandazure.com",
+    };
+    resolvedEmail = EMAIL_SHORTCUTS[resolvedEmail.toLowerCase()] ?? resolvedEmail;
 
     setLoading(true);
 
@@ -69,24 +74,21 @@ export default function LoginPage() {
 
         // Determine role synchronously from email
         const emailLower = (authData?.user?.email || resolvedEmail).toLowerCase();
-        let role = "guest";
-        if (
-          emailLower === "super@grandazure.com" ||
-          emailLower === "admin@grandazure.com" ||
-          emailLower === "admin2@grandazure.com"
-        ) {
-          role = "super_admin";
-        } else if (emailLower === "manager@grandazure.com") {
-          role = "manager";
-        } else if (emailLower === "reception@grandazure.com") {
-          role = "receptionist";
-        } else if (emailLower === "housekeeping@grandazure.com") {
-          role = "housekeeping";
-        } else if (emailLower === "cashier@grandazure.com") {
-          role = "cashier";
-        } else if (emailLower === "maintenance@grandazure.com") {
-          role = "maintenance";
-        }
+        const ROLE_MAP: Record<string, string> = {
+          "super@grandazure.com":        "super_admin",
+          "admin@grandazure.com":        "super_admin",
+          "admin2@grandazure.com":       "super_admin",
+          "manager@grandazure.com":      "manager",
+          "reception@grandazure.com":    "receptionist",
+          "housekeeping@grandazure.com": "housekeeping",
+          "cashier@grandazure.com":      "cashier",
+          "maintenance@grandazure.com":  "maintenance",
+          "guest@grandazure.com":        "guest",
+        };
+        let role = ROLE_MAP[emailLower] ??
+          // also read from user_metadata set during sign-in
+          (authData?.user?.user_metadata?.role as string | undefined) ??
+          "guest";
 
         // Provision profile in DB (with fast 800ms timeout so login is instant)
         if (authData?.user) {

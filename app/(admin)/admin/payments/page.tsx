@@ -1,16 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, StatusBadge, Button, Input } from "@/components/ui";
-import { Search, Download, CreditCard, TrendingUp, RefreshCw, Eye } from "lucide-react";
+import { Search, Download, CreditCard, RefreshCw, Eye } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Payment = Record<string, any>;
 
-const PAYMENT_STATUSES = ["all", "completed", "pending", "failed", "refunded"];
+const PAYMENT_STATUSES = ["all", "completed", "pending", "failed", "refunded", "partially_refunded"];
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -29,7 +29,7 @@ export default function PaymentsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { fetchPayments(); }, []);
+  useEffect(() => { void (async () => { await fetchPayments(); })(); }, []);
 
   const filtered = payments.filter(p => {
     const guest = `${p.reservations?.guests?.first_name ?? ""} ${p.reservations?.guests?.last_name ?? ""}`.toLowerCase();
@@ -108,7 +108,7 @@ export default function PaymentsPage() {
           {PAYMENT_STATUSES.map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={`px-3 py-1 text-xs rounded-full border font-medium transition-all ${statusFilter === s ? "bg-navy-800 text-white border-navy-800" : "border-border/60 text-muted-foreground hover:border-navy-400"}`}>
-              {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+              {s === "all" ? "All" : s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
             </button>
           ))}
         </div>

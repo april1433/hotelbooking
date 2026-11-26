@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, StatusBadge, Button } from "@/components/ui";
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, StatusBadge, Button, Input, Label } from "@/components/ui";
 import { CalendarDays, BedDouble, Clock, Eye, XCircle, Plus, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
@@ -10,7 +11,6 @@ import { formatCurrency } from "@/lib/utils";
 
 import { toast } from "sonner";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Reservation = Record<string, any>;
 
 export default function GuestReservationsPage() {
@@ -22,16 +22,27 @@ export default function GuestReservationsPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelLoading, setCancelLoading] = useState(false);
 
-  async function fetchReservations() {
-    if (!user) return;
-    setLoading(true);
+  // Booking Time Extension modal states
+  const [extendingRes, setExtendingRes] = useState<Reservation | null>(null);
+  const [extensionType, setExtensionType] = useState<"hours" | "days">("hours");
+  const [additionalHours, setAdditionalHours] = useState("3");
+  const [newCheckOutDate, setNewCheckOutDate] = useState("");
+  const [extensionNotes, setExtensionNotes] = useState("");
+  const [extendLoading, setExtendLoading] = useState(false);
+
+  const isFetchingRef = useRef(false);
+
+  async function fetchReservations(silent = false) {
+    if (!user || isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    if (!silent) setLoading(true);
     const supabase = createClient();
     try {
       // Primary query: by profile_id (set when user is logged in during booking)
       const { data: byProfile } = await (supabase as any)
         .from("reservations")
         .select(`
-          id, confirmation_number, status, check_in_date, check_out_date, total_amount,
+          id, confirmation_number, status, check_in_date, check_out_date, total_amount, paid_amount,
           room_types(name),
           rooms(room_number)
         `)
@@ -42,7 +53,6 @@ export default function GuestReservationsPage() {
       const userEmail = user.email;
       let byEmail: Reservation[] = [];
       if (userEmail) {
-        // Find guest records matching this email
         const { data: guestRecords } = await (supabase as any)
           .from("guests")
           .select("id")
@@ -53,7 +63,7 @@ export default function GuestReservationsPage() {
           const { data: emailReservations } = await (supabase as any)
             .from("reservations")
             .select(`
-              id, confirmation_number, status, check_in_date, check_out_date, total_amount,
+              id, confirmation_number, status, check_in_date, check_out_date, total_amount, paid_amount,
               room_types(name),
               rooms(room_number)
             `)
@@ -74,9 +84,10 @@ export default function GuestReservationsPage() {
 
       setReservations(merged);
     } catch {
-      setReservations([]);
+      if (!silent) setReservations([]);
     } finally {
-      setLoading(false);
+      isFetchingRef.current = false;
+      if (!silent) setLoading(false);
     }
   }
 
@@ -96,10 +107,14 @@ export default function GuestReservationsPage() {
       if (!res.ok) {
         throw new Error(data.error || "Failed to cancel reservation.");
       }
-      toast.success("Reservation cancelled successfully.");
+      toast.success(
+        data.paidAmount > 0
+          ? `Reservation cancelled! ${formatCurrency(data.refundedAmount)} refunded (10% deduction: ${formatCurrency(data.deductedAmount)}). Confirmation sent to your email.`
+          : "Reservation cancelled successfully. Confirmation sent to your email."
+      );
       setCancellingRes(null);
       setCancelReason("");
-      fetchReservations();
+      fetchReservations(true);
     } catch (err: any) {
       toast.error(err.message || "Failed to cancel reservation.");
     } finally {
@@ -107,8 +122,50 @@ export default function GuestReservationsPage() {
     }
   }
 
+  async function handleConfirmExtend(e: React.FormEvent) {
+    e.preventDefault();
+    if (!extendingRes) return;
+    if (extensionType === "days" && (!newCheckOutDate || newCheckOutDate <= extendingRes.check_out_date)) {
+      toast.error("New check-out date must be after your current check-out date.");
+      return;
+    }
+
+    const timeLabels: Record<string, string> = {
+      "2": "+2 Hours (Late Check-Out at 2:00 PM)",
+      "3": "+3 Hours (Late Check-Out at 3:00 PM)",
+      "6": "+6 Hours (Late Check-Out at 6:00 PM)",
+    };
+
+    setExtendLoading(true);
+    try {
+      const res = await fetch("/api/booking/extend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reservationId: extendingRes.id,
+          extensionType,
+          additionalHours: extensionType === "hours" ? Number(additionalHours) : null,
+          requestedTimeLabel: extensionType === "hours" ? timeLabels[additionalHours] : null,
+          newCheckOutDate: extensionType === "days" ? newCheckOutDate : null,
+          notes: extensionNotes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit extension request.");
+
+      toast.success("Booking time extension request sent to hotel administration!");
+      setExtendingRes(null);
+      setExtensionNotes("");
+      setNewCheckOutDate("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit extension request.");
+    } finally {
+      setExtendLoading(false);
+    }
+  }
+
   useEffect(() => {
-    fetchReservations();
+    void (async () => { await fetchReservations(false); })();
 
     // Handle redirect from payment gateways
     if (typeof window !== "undefined") {
@@ -119,10 +176,8 @@ export default function GuestReservationsPage() {
       // GCash success redirect
       if (success === "true") {
         toast.success("Booking confirmed! Welcome to Grand Azure.");
-        // Clean URL without reloading
         window.history.replaceState({}, "", window.location.pathname);
-        // Fetch again after a short delay to ensure DB has been written
-        setTimeout(() => fetchReservations(), 1000);
+        setTimeout(() => fetchReservations(true), 1000);
       }
 
       // Stripe session verify
@@ -136,7 +191,7 @@ export default function GuestReservationsPage() {
           .then(res => {
             if (res.success) {
               toast.success("Booking confirmed! Welcome to Grand Azure.");
-              fetchReservations();
+              fetchReservations(true);
             }
           })
           .catch(() => {});
@@ -144,8 +199,8 @@ export default function GuestReservationsPage() {
     }
 
     const interval = setInterval(() => {
-      fetchReservations();
-    }, 10000);
+      fetchReservations(true);
+    }, 15000);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -160,6 +215,10 @@ export default function GuestReservationsPage() {
     totalSpent: reservations.filter(r => !["cancelled", "no_show"].includes(r.status)).reduce((s, r) => s + (r.total_amount ?? 0), 0),
   };
 
+  const cancelPaidAmt = Number(cancellingRes?.paid_amount ?? 0);
+  const cancelDeductAmt = Math.round(cancelPaidAmt * 0.1 * 100) / 100;
+  const cancelRefundAmt = Math.round((cancelPaidAmt - cancelDeductAmt) * 100) / 100;
+
   return (
     <div className="space-y-8 page-transition">
       <div className="flex items-center justify-between">
@@ -168,7 +227,7 @@ export default function GuestReservationsPage() {
           <p className="page-subtitle">Your upcoming and past stays at Grand Azure.</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={fetchReservations} variant="outline" size="sm" className="rounded-xl">
+          <Button onClick={() => fetchReservations(false)} variant="outline" size="sm" className="rounded-xl">
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
           </Button>
           <Link href="/booking">
@@ -243,25 +302,46 @@ export default function GuestReservationsPage() {
                     <div>Check-In: <span className="text-foreground font-semibold">{r.check_in_date}</span></div>
                     <div>Check-Out: <span className="text-foreground font-semibold">{r.check_out_date}</span></div>
                     <div>Total Cost: <span className="text-gold-600 font-bold">{formatCurrency(r.total_amount ?? 0)}</span></div>
+                    {Number(r.paid_amount ?? 0) > 0 && (
+                      <div>Paid: <span className="text-emerald-600 font-semibold">{formatCurrency(r.paid_amount)}</span></div>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-border/40 mt-4">
+                <div className="flex items-center justify-between flex-wrap gap-2 pt-3 border-t border-border/40 mt-4">
                   <Link href={`/guest/invoices?reservationId=${r.id}`}>
                     <Button variant="outline" size="sm" className="rounded-lg text-xs h-8 gap-1.5">
                       <Eye className="h-3 w-3" /> View Invoice
                     </Button>
                   </Link>
 
-                  {["pending", "confirmed"].includes(r.status) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCancellingRes(r)}
-                      className="rounded-lg text-xs h-8 gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900/50"
-                    >
-                      <XCircle className="h-3.5 w-3.5" /> Cancel Booking
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {["confirmed", "checked_in"].includes(r.status) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setExtendingRes(r);
+                          setExtensionType("hours");
+                          setAdditionalHours("3");
+                          setNewCheckOutDate(r.check_out_date ?? "");
+                          setExtensionNotes("");
+                        }}
+                        className="rounded-lg text-xs h-8 gap-1.5 text-amber-700 hover:bg-amber-50 border-amber-200 dark:text-amber-400 dark:border-amber-800/50 dark:hover:bg-amber-950/20"
+                      >
+                        <Clock className="h-3.5 w-3.5" /> Extend Time
+                      </Button>
+                    )}
+                    {["pending", "confirmed"].includes(r.status) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCancellingRes(r)}
+                        className="rounded-lg text-xs h-8 gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 border-red-200 dark:border-red-900/50"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Cancel Booking
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -291,13 +371,35 @@ export default function GuestReservationsPage() {
               </div>
             </div>
 
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl p-3.5 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-              <p className="font-semibold">Are you sure you want to cancel this booking?</p>
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-xl p-3.5 text-xs text-amber-800 dark:text-amber-300 space-y-1.5">
+              <p className="font-semibold">Cancellation &amp; Refund Policy (10% Fee Deduction)</p>
               <p className="text-[11px] text-amber-700 dark:text-amber-400">
                 {cancellingRes.room_types?.name ?? "Room"} &bull; {cancellingRes.check_in_date} to {cancellingRes.check_out_date}
               </p>
+
+              {cancelPaidAmt > 0 ? (
+                <div className="pt-2 mt-2 border-t border-amber-200/80 dark:border-amber-800/40 space-y-1 text-[11px]">
+                  <div className="flex justify-between">
+                    <span>Original Amount Paid:</span>
+                    <span className="font-semibold">{formatCurrency(cancelPaidAmt)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-600 dark:text-red-400">
+                    <span>Cancellation Deduction (10%):</span>
+                    <span className="font-semibold">-{formatCurrency(cancelDeductAmt)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-emerald-700 dark:text-emerald-400 pt-1 border-t border-amber-200/60">
+                    <span>Total Amount to be Refunded (90%):</span>
+                    <span>{formatCurrency(cancelRefundAmt)}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] opacity-80 pt-1">
+                  No online payment was collected for this booking (Pay at Hotel). No refund charge applies.
+                </p>
+              )}
+
               <p className="text-[11px] opacity-80 pt-1">
-                Your room allocation will be released. Once cancelled, this action cannot be undone.
+                A confirmation email with your cancellation and refund details will be sent to your email address.
               </p>
             </div>
 
@@ -332,6 +434,111 @@ export default function GuestReservationsPage() {
                 Yes, Cancel Booking
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Time Extension Modal */}
+      {extendingRes && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-charcoal-900 border border-border/40 rounded-3xl max-w-md w-full shadow-2xl p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 shrink-0">
+                <Clock className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold font-display">Extend Booking Time</h3>
+                <p className="text-xs text-muted-foreground">
+                  {extendingRes.confirmation_number ?? extendingRes.id.slice(0, 8)} &bull; Current Check-Out: {extendingRes.check_out_date}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmExtend} className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setExtensionType("hours")}
+                  className={`p-2.5 text-xs font-semibold rounded-xl border transition-all ${
+                    extensionType === "hours"
+                      ? "bg-navy-800 text-white border-navy-800"
+                      : "border-border/60 text-muted-foreground"
+                  }`}
+                >
+                  Late Check-Out (Hours)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExtensionType("days")}
+                  className={`p-2.5 text-xs font-semibold rounded-xl border transition-all ${
+                    extensionType === "days"
+                      ? "bg-navy-800 text-white border-navy-800"
+                      : "border-border/60 text-muted-foreground"
+                  }`}
+                >
+                  Extend Stay (Dates)
+                </button>
+              </div>
+
+              {extensionType === "hours" ? (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Requested Check-Out Extension</Label>
+                  <select
+                    value={additionalHours}
+                    onChange={(e) => setAdditionalHours(e.target.value)}
+                    className="w-full h-9 rounded-xl border border-input bg-background px-3 text-xs focus:outline-none"
+                  >
+                    <option value="2">+2 Hours (Until 2:00 PM)</option>
+                    <option value="3">+3 Hours (Until 3:00 PM)</option>
+                    <option value="6">+6 Hours (Until 6:00 PM)</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">New Check-Out Date</Label>
+                  <Input
+                    type="date"
+                    min={extendingRes.check_out_date}
+                    value={newCheckOutDate}
+                    onChange={(e) => setNewCheckOutDate(e.target.value)}
+                    className="rounded-xl h-9 text-xs"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Notes (optional)</Label>
+                <Input
+                  placeholder="e.g., Late flight schedule"
+                  value={extensionNotes}
+                  onChange={(e) => setExtensionNotes(e.target.value)}
+                  className="rounded-xl h-9 text-xs"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 rounded-xl"
+                  onClick={() => setExtendingRes(null)}
+                  disabled={extendLoading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="gold"
+                  size="sm"
+                  className="flex-1 rounded-xl"
+                  loading={extendLoading}
+                >
+                  Submit Request
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

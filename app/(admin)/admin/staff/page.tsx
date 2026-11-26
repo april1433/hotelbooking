@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 import { ROLE_LABELS, DEFAULT_STAFF } from "@/constants";
 import { toast } from "sonner";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type StaffMember = Record<string, any>;
 
 const STAFF_ROLES = ["all", "super_admin", "manager", "receptionist", "housekeeping", "maintenance", "cashier"];
@@ -33,6 +33,7 @@ export default function StaffPage() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
+  const [viewingStaff, setViewingStaff] = useState<StaffMember | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   // Form fields
@@ -64,7 +65,7 @@ export default function StaffPage() {
     }
   }
 
-  useEffect(() => { fetchStaff(); }, []);
+  useEffect(() => { void (async () => { await fetchStaff(); })(); }, []);
 
   function openAddModal() {
     setEditingStaff(null);
@@ -104,7 +105,11 @@ export default function StaffPage() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to create staff account.");
-        toast.success("Staff account created successfully.");
+        if (data.emailSent) {
+          toast.success(`Staff account created and login credentials sent to ${email}.`);
+        } else {
+          toast.success(`Staff account created for ${email}. Credentials email logged (set RESEND_API_KEY in .env.local for live delivery).`);
+        }
       }
       setShowModal(false);
       fetchStaff();
@@ -238,7 +243,7 @@ export default function StaffPage() {
                           <button onClick={() => openEditModal(s)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="Edit">
                             <Edit className="h-3.5 w-3.5" />
                           </button>
-                          <button className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="View">
+                          <button onClick={() => setViewingStaff(s)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground" title="View">
                             <Eye className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -290,11 +295,16 @@ export default function StaffPage() {
               </div>
 
               {!editingStaff && (
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Password *</label>
-                  <input type="password" className={FIELD_CLASS} value={password} onChange={e => setPassword(e.target.value)}
-                    placeholder="Min. 8 characters" minLength={8} required />
-                </div>
+                <>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Password *</label>
+                    <input type="password" className={FIELD_CLASS} value={password} onChange={e => setPassword(e.target.value)}
+                      placeholder="Min. 8 characters" minLength={8} required />
+                  </div>
+                  <p className="text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl px-3 py-2">
+                    Account login details (username/email and password) will be sent directly to this staff email upon creation.
+                  </p>
+                </>
               )}
 
               <div>
@@ -320,6 +330,41 @@ export default function StaffPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Staff Modal */}
+      {viewingStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-background rounded-2xl shadow-2xl w-full max-w-sm border border-border/60 p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-border/40 pb-3">
+              <h2 className="text-base font-semibold font-display">Staff Account Details</h2>
+              <button onClick={() => setViewingStaff(null)} className="p-1.5 rounded-lg hover:bg-muted">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Name</span>
+                <span className="font-medium">{viewingStaff.first_name} {viewingStaff.last_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Email / Username</span>
+                <span className="font-mono text-xs">{viewingStaff.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Role</span>
+                <span className="font-medium">{ROLE_LABELS[viewingStaff.role] ?? viewingStaff.role}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Phone</span>
+                <span>{viewingStaff.phone ?? "—"}</span>
+              </div>
+            </div>
+            <div className="pt-2 flex justify-end">
+              <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setViewingStaff(null)}>Close</Button>
+            </div>
           </div>
         </div>
       )}
